@@ -125,7 +125,7 @@ public class ServerSend
             _packet.Write(_player.id);
             _packet.Write(_player.transform.rotation);
 
-            SendUDPDataToAll(_player.id, _packet);
+            SendUDPDataToAll(_packet);
         }
     }
 
@@ -160,13 +160,12 @@ public class ServerSend
         }
     }
 
-    public static void CreateItemSpawner(int _toClient, int _spawnerId, Vector3 _position, bool _hasItem)
+    public static void CreateEnvironment(int _toClient, Vector3 _position, Vector3 _localScale)
     {
-        using (Packet _packet = new Packet((int)ServerPackets.createItemSpawner))
+        using (Packet _packet = new Packet((int)ServerPackets.createEnvironment))
         {
-            _packet.Write(_spawnerId);
             _packet.Write(_position);
-            _packet.Write(_hasItem);
+            _packet.Write(_localScale);
 
             SendTCPData(_toClient, _packet);
         }

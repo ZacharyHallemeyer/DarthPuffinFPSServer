@@ -236,16 +236,10 @@ public class Client
             }
         }
 
-        // Spawn ItemSpawners
-        foreach (ItemSpawner _itemSpawner in ItemSpawner.spawners.Values)
+        // Send environment to new player
+        foreach(GameObject _planet in EnvironmentGenerator.planets.Values)
         {
-            ServerSend.CreateItemSpawner(id, _itemSpawner.spawnerId, _itemSpawner.transform.position, _itemSpawner.hasItem);
-        }
-
-        // Spawn enemy spawners
-        foreach (Enemy _enemy in Enemy.enemies.Values)
-        {
-            ServerSend.SpawnEnemy(id, _enemy);
+            ServerSend.CreateEnvironment(id, _planet.transform.position, _planet.transform.localScale); 
         }
     }
 
