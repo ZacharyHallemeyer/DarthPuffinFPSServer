@@ -18,7 +18,7 @@ public class Player : MonoBehaviour
     private Vector2[] inputsVector2;
 
     // Movement variables
-    private readonly int moveSpeed = 9000;
+    private readonly int moveSpeed = 4500;
     private readonly int maxBaseSpeed = 20;
     public LayerMask whatIsGround;
     public bool isGrounded;
@@ -287,8 +287,8 @@ public class Player : MonoBehaviour
             // Rotate Player
             Quaternion desiredRotation = Quaternion.FromToRotation(_gravityObject.up, -(_gravityObject.position - transform.position).normalized);
             //transform.rotation = Quaternion.Lerp(transform.rotation, desiredRotation, Time.deltaTime * 5);
-            desiredRotation = Quaternion.Lerp(transform.rotation, desiredRotation, Time.deltaTime * 5);
-            transform.rotation = Quaternion.Euler(
+            desiredRotation = Quaternion.Lerp(transform.localRotation, desiredRotation, Time.deltaTime * 5);
+            transform.localRotation = Quaternion.Euler(
                                                   desiredRotation.eulerAngles.x,
                                                   desiredRotation.eulerAngles.y,
                                                   desiredRotation.eulerAngles.z
