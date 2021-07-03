@@ -44,11 +44,11 @@ public class Player : MonoBehaviour
     public float adsSensMultiplier { get; set; } = 1f;
 
     // Gravity variables (Disable use gravity for rigid body)
-    private readonly Vector3[] directions = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
     public LayerMask whatIsGravityObject;
     public float gravityMaxDistance = 20;
     public float gravityForce = 4500;
     public float maxDistanceFromOrigin = 600, forceBackToOrigin = 4500f;
+    public Quaternion lastOrientationRotation;
 
     // JetPack 
     public float jetPackForce = 1550f;
@@ -59,8 +59,23 @@ public class Player : MonoBehaviour
     public float jetPackBurstCost = .5f;
     public bool isJetPackRecoveryActive = false;
 
+    // Grappling Variables ==================
+    // Components
+    private SpringJoint joint;
+    public LayerMask whatIsGrapple;
+
+    // Numerical variables
+    private float maxGrappleDistance = 10000f, minGrappleDistance = 5f;
+    public float maxGrappleTime = 1000f, grappleRecoveryIncrement = 50f;
+    public float timeLeftToGrapple;
+
+    public bool IsGrappleRecoveryInProgress { get; set; } = false;
+    public bool IsGrappling { get; private set; }
+    public Vector3 GrapplePoint { get; private set; }
+
     private void Start()
     {
+        maxDistanceFromOrigin = EnvironmentGenerator.BoundaryDistanceFromOrigin;
         currentJetPackTime = maxJetPackTime;
     }
 
@@ -70,16 +85,28 @@ public class Player : MonoBehaviour
         username = _username;
         health = maxHealth;
 
-        inputsBool = new bool[5];
+        inputsBool = new bool[7];
         inputsVector2 = new Vector2[1];
     }
 
     /// <summary>Processes player input and moves the player.</summary>
     public void FixedUpdate()
     {
+        Debug.DrawRay(transform.position, -orientation.up);
         if (health <= 0) return;
         GetInput();
         GravityController();
+        if (IsGrappling)
+        {
+            if (timeLeftToGrapple > maxGrappleTime / 4)
+                ContinueGrapple();
+            else
+            {
+                Debug.Log("Stop Grapple called from fixed update");
+                StopGrapple();
+                ServerSend.PlayerStopGrapple(id);
+            }
+        }
     }
 
     private void Update()
@@ -96,8 +123,6 @@ public class Player : MonoBehaviour
         inputsBool = _inputsBools;
         inputsVector2 = _inputsVector2;
 
-        //transform.localRotation = Quaternion.Euler(_rotation.eulerAngles.x , transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
-        //orientation.localRotation = Quaternion.Euler(_rotation.eulerAngles.x, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
         orientation.localRotation = _rotation;
     }
 
@@ -126,15 +151,12 @@ public class Player : MonoBehaviour
         else if (_inputDirection.x != 0 || _inputDirection.y != 0)
             JetPackMovement(_inputDirection);
 
-        // Look
-        //Look();
-
         // JetPack
             // TODO
         // ADS
             // TODO
         ServerSend.PlayerPosition(this);
-        ServerSend.PlayerRotation(this);
+        //ServerSend.PlayerRotation(this);
     }
 
     #region Movement
@@ -147,7 +169,7 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.right * _inputDirection.x * moveSpeed * Time.deltaTime);
 
         ServerSend.PlayerPosition(this);
-        ServerSend.PlayerRotation(this);
+        //ServerSend.PlayerRotation(this);
     }
 
     #region JetPack
@@ -166,7 +188,7 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.right * _inputDirection.x * jetPackForce * Time.deltaTime);
 
         ServerSend.PlayerPosition(this);
-        ServerSend.PlayerRotation(this);
+        //ServerSend.PlayerRotation(this);
     }
 
     public void JetPackUp()
@@ -181,7 +203,7 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.up * jetPackForce * Time.deltaTime);
         
         ServerSend.PlayerPosition(this);
-        ServerSend.PlayerRotation(this);
+        //ServerSend.PlayerRotation(this);
     }
 
     public void JetPackDown()
@@ -196,7 +218,7 @@ public class Player : MonoBehaviour
         rb.AddForce(-orientation.up * jetPackForce * Time.deltaTime);
         
         ServerSend.PlayerPosition(this);
-        ServerSend.PlayerRotation(this);
+        //ServerSend.PlayerRotation(this);
     }
 
     /// <summary>
@@ -216,38 +238,18 @@ public class Player : MonoBehaviour
 
     #endregion
 
-    #region Player Camera
-
-    public void Look()
-    {
-        Vector3 rot = playerCamPosition.localRotation.eulerAngles;
-        desiredX = rot.y + inputsVector2[0].x;
-
-        //Rotate, and also make sure we dont over- or under-rotate.
-        xRotation -= inputsVector2[0].y;
-        xRotation = Mathf.Clamp(xRotation, -85f, 85f);
-
-        // Perform the rotations
-        playerCamPosition.localRotation = Quaternion.Euler(xRotation, desiredX, 0);
-        orientation.localRotation = Quaternion.Euler(0, desiredX, 0);
-    }
-
-    #endregion
-
     #region Artificial Gravity
 
     public void GravityController()
     {
-        ServerSend.PlayerRotation(this);
-        ServerSend.PlayerPosition(this);
-
-        if (transform.position.magnitude > 600)
+        if (transform.position.magnitude > maxDistanceFromOrigin)
         {
+            //rb.velocity /= 2;
             rb.AddForce(-transform.position.normalized * forceBackToOrigin * Time.deltaTime);
             return;
         }
 
-        //if (playerActions.IsGrappling) return;
+        if (IsGrappling) return;
 
         Transform[] _gravityObjects = FindGravityObjects();
 
@@ -281,24 +283,33 @@ public class Player : MonoBehaviour
         rb.AddForce((_gravityObject.position - transform.position) * gravityForce * Time.deltaTime);
 
         // Rotate Player
-        //if(grounded && ((mouseX == 0 && mouseY == 0) || !Physics.Raycast(transform.position, -transform.up, 5f)))
-        if (isGrounded)
+        if (isGrounded )
         {
             // Rotate Player
             Quaternion desiredRotation = Quaternion.FromToRotation(_gravityObject.up, -(_gravityObject.position - transform.position).normalized);
-            //transform.rotation = Quaternion.Lerp(transform.rotation, desiredRotation, Time.deltaTime * 5);
-            desiredRotation = Quaternion.Lerp(transform.localRotation, desiredRotation, Time.deltaTime * 5);
-            transform.localRotation = Quaternion.Euler(
-                                                  desiredRotation.eulerAngles.x,
-                                                  desiredRotation.eulerAngles.y,
-                                                  desiredRotation.eulerAngles.z
-                                                 ) ;
+            desiredRotation = Quaternion.Lerp(transform.localRotation, desiredRotation, Time.deltaTime * 2);
+
+            rb.MoveRotation(desiredRotation);
+            /*
+            if(!Physics.Raycast(transform.position, -orientation.up, transform.localScale.y))
+            {
+                Debug.Log("This is running");
+                rb.MoveRotation(Quaternion.Euler(
+                                            desiredRotation.eulerAngles.x,
+                                            desiredRotation.eulerAngles.y,
+                                            desiredRotation.eulerAngles.z
+                                            ));
+            }
+             */
             // Rotate camera
-                // TODO (Maybe)
+            // TODO (Maybe)
 
             // Add extra force to stick player to planet surface
             rb.AddForce((_gravityObject.position - transform.position) * gravityForce * 1 * Time.deltaTime);
         }
+        ServerSend.PlayerPosition(this);
+        //ServerSend.PlayerRotation(this);
+        lastOrientationRotation = orientation.localRotation;
     }
 
 
@@ -322,6 +333,100 @@ public class Player : MonoBehaviour
     #endregion
 
     #region Grapple
+
+    /// <summary>
+    /// Turns off gravity, creates joints for grapple
+    /// Call whenever player inputs for grapple
+    /// Dependencies: DrawRope
+    /// </summary>
+    public void StartGrapple(Vector3 _direction)
+    {
+        Debug.Log("Start Grapple is called");
+        Ray ray = new Ray(transform.position, _direction);
+        Debug.Log(ray.ToString());
+        if (Physics.Raycast(ray, out RaycastHit hit, maxGrappleDistance, whatIsGrapple))
+        {
+            Debug.Log("Start Grapple started");
+            if (Vector3.Distance(transform.position, hit.point) < minGrappleDistance)
+                return;
+
+            if (IsGrappleRecoveryInProgress)
+            {
+                IsGrappleRecoveryInProgress = false;
+                CancelInvoke("GrappleRecovery");
+            }
+
+            IsGrappling = true;
+
+            // Create joint ("Grapple rope") and anchor to player and grapple point
+            GrapplePoint = hit.point;
+            joint = transform.gameObject.AddComponent<SpringJoint>();
+            joint.autoConfigureConnectedAnchor = false;
+            joint.connectedAnchor = GrapplePoint;
+
+            joint.spring = 0f;
+            joint.damper = 0f;
+            joint.massScale = 0f;
+
+            ServerSend.PlayerStartGrapple(id);
+        }
+        //else
+            //StopGrapple();
+    }
+
+    /// <summary>
+    /// Call every frame while the player is grappling
+    /// </summary>
+    public void ContinueGrapple()
+    {
+        timeLeftToGrapple -= Time.deltaTime;
+        if (timeLeftToGrapple < 0)
+        {
+            StopGrapple();
+        }
+
+        // Pull player to grapple point
+        Vector3 direction = (GrapplePoint - transform.position).normalized;
+        rb.AddForce(direction * 100 * Time.deltaTime, ForceMode.Impulse);
+
+        // Prevent grapple from phasing through/into objectsz
+        // (Game objects such as buildings must have a rotation for this section to work)
+        if (Physics.Raycast(GrapplePoint, (transform.position - GrapplePoint), Vector3.Distance(GrapplePoint, transform.position) - 5, whatIsGrapple))
+        {
+            StopGrapple();
+        }
+        ServerSend.PlayerPosition(this);
+    }
+
+    /// <summary>
+    /// Erases grapple rope, turns player gravity on, and destroys joint
+    /// </summary>
+    public void StopGrapple()
+    {
+        if (!IsGrappleRecoveryInProgress)
+        {
+            IsGrappleRecoveryInProgress = true;
+            InvokeRepeating("GrappleRecovery", 0f, .1f);
+        }
+        IsGrappling = false;
+        Destroy(joint);
+        ServerSend.PlayerStopGrapple(id);
+    }
+
+
+    /// <summary>
+    /// adds time to player's amount of grapple left. Must be called through invoke repeating with
+    /// a repeat time of .1 seconds of scaled time
+    /// </summary>
+    public void GrappleRecovery()
+    {
+        if (timeLeftToGrapple <= maxGrappleTime)
+        {
+            timeLeftToGrapple += grappleRecoveryIncrement;
+        }
+        else
+            CancelInvoke("GrappleRecovery");
+    }
 
     #endregion
 
@@ -357,3 +462,66 @@ public class Player : MonoBehaviour
 
     #endregion
 }
+
+/*
+if (Physics.Raycast(transform.position, Vector3.up, distance1))
+{
+    Debug.Log("UP!");
+    Debug.DrawRay(transform.position, Vector3.up);
+    transform.localRotation = Quaternion.Euler(
+                                            desiredRotation.eulerAngles.x,
+                                            transform.localRotation.y,
+                                            desiredRotation.eulerAngles.z
+                                            );
+}
+if (Physics.Raycast(transform.position, Vector3.down, distance1))
+{
+    Debug.Log("DOWN!");
+    Debug.DrawRay(transform.position, Vector3.down);
+    transform.localRotation = Quaternion.Euler(
+                                          desiredRotation.eulerAngles.x,
+                                          transform.localEulerAngles.y,
+                                          desiredRotation.eulerAngles.z
+                                         );
+}
+if(Physics.Raycast(transform.position, Vector3.left, distance2))
+{
+    Debug.Log("LEFT!");
+    Debug.DrawRay(transform.position, Vector3.left);
+    transform.localRotation = Quaternion.Euler(
+                                          transform.localRotation.x,
+                                          desiredRotation.eulerAngles.y,
+                                          desiredRotation.eulerAngles.z
+                                         );
+}
+if (Physics.Raycast(transform.position, Vector3.right, distance2))
+{
+    Debug.Log("RIGHT!");
+    Debug.DrawRay(transform.position, Vector3.right);
+    transform.localRotation = Quaternion.Euler(
+                                          transform.localEulerAngles.x,
+                                          desiredRotation.eulerAngles.y,
+                                          desiredRotation.eulerAngles.z
+                                         );
+}
+if(Physics.Raycast(transform.position, Vector3.forward, distance2))
+{
+    Debug.Log("FORWARD!");
+    Debug.DrawRay(transform.position, Vector3.forward);
+    transform.localRotation = Quaternion.Euler(
+                                          desiredRotation.eulerAngles.x,
+                                          desiredRotation.eulerAngles.y,
+                                          transform.localRotation.z
+                                         );
+}
+if (Physics.Raycast(transform.position, Vector3.back, distance2))
+{
+    Debug.Log("BACK!");
+    Debug.DrawRay(transform.position, Vector3.back);
+    transform.localRotation = Quaternion.Euler(
+                                          desiredRotation.eulerAngles.x,
+                                          desiredRotation.eulerAngles.y,
+                                          transform.localEulerAngles.z
+                                         );
+}
+*/

@@ -15,6 +15,9 @@ public enum ServerPackets
     playerHealth,
     playerRespawned,
     createEnvironment,
+    createBoundary,
+    playerStartGrapple,
+    playerStopGrapple,
 }
 
 /// <summary>Sent from client to server.</summary>
@@ -22,6 +25,8 @@ public enum ClientPackets
 {
     welcomeReceived = 1,
     playerMovement,
+    playerStartGrapple,
+    playerStopGrapple,
     playerShoot,
     playerThrowItem
 }

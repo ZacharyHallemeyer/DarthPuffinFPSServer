@@ -5,6 +5,7 @@ using UnityEngine;
 public class EnvironmentGenerator : MonoBehaviour
 {
     public static Dictionary<int, GameObject> planets = new Dictionary<int, GameObject>();
+    public static int BoundaryDistanceFromOrigin;
 
     public int minPositionX, maxPositionX, minPositionY, maxPositionY, minPositionZ, maxPositionZ;
     public int minScale, maxScale;
@@ -16,6 +17,11 @@ public class EnvironmentGenerator : MonoBehaviour
 
     private void Start()
     {
+        BoundaryDistanceFromOrigin = Mathf.Max(new int[] {
+                                        Mathf.Abs(minPositionX) + Mathf.Abs(maxPositionX),
+                                        Mathf.Abs(minPositionY) + Mathf.Abs(maxPositionY),
+                                        Mathf.Abs(minPositionZ) + Mathf.Abs(maxPositionZ)
+                                        }) + 100;
         Random.InitState(Random.Range(0, 10000));
         StartCoroutine(GeneratePlanets());
     }

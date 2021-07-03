@@ -241,6 +241,8 @@ public class Client
         {
             ServerSend.CreateEnvironment(id, _planet.transform.position, _planet.transform.localScale); 
         }
+
+        ServerSend.CreateBoundary(id, Vector3.zero, EnvironmentGenerator.BoundaryDistanceFromOrigin);
     }
 
     /// <summary>Disconnects the client and stops all network traffic.</summary>

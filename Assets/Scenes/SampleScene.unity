@@ -383,18 +383,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07e367c6efe7eca44a98a2a5ab2f02a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minPositionX: 0
-  maxPositionX: 0
-  minPositionY: 0
-  maxPositionY: 0
-  minPositionZ: 0
-  maxPositionZ: 0
-  minScale: 40
-  maxScale: 40
-  minPlanetCount: 1
-  maxPlanetCount: 1
-  minPlanetDistance: 1
-  maxPlanetDistance: 2
+  minPositionX: -250
+  maxPositionX: 250
+  minPositionY: -250
+  maxPositionY: 250
+  minPositionZ: -250
+  maxPositionZ: 250
+  minScale: 10
+  maxScale: 100
+  minPlanetCount: 20
+  maxPlanetCount: 30
+  minPlanetDistance: 2
+  maxPlanetDistance: 3
   planetBase: {fileID: 2693521118686034113, guid: cf9fd9b6e25e29f4b9fbea21d51e6bf3,
     type: 3}
 --- !u!4 &2018669589

@@ -33,4 +33,17 @@ public class ServerHandle
 
         Server.clients[_fromClient].player.SetInput(_inputsBool, _inputsVector2,_rotation);
     }
+
+    public static void PlayerStartGrapple(int _fromClient, Packet _packet)
+    {
+        Vector3 _direction = _packet.ReadVector3();
+
+        Server.clients[_fromClient].player.StartGrapple(_direction);
+    }
+
+    public static void PlayerStopGrapple(int _fromClient, Packet _packet)
+    {
+        Debug.Log("Stop Grapple called from Player Stop Grapple");
+        Server.clients[_fromClient].player.StopGrapple();
+    }
 }

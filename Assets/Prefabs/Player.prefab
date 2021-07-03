@@ -215,6 +215,12 @@ MonoBehaviour:
   jetPackRecoveryRepeatTime: 0.01
   jetPackBurstCost: 0.5
   isJetPackRecoveryActive: 0
+  whatIsGrapple:
+    serializedVersion: 2
+    m_Bits: 7936
+  maxGrappleTime: 1000
+  grappleRecoveryIncrement: 50
+  timeLeftToGrapple: 0
 --- !u!1 &7612817930700101615
 GameObject:
   m_ObjectHideFlags: 0

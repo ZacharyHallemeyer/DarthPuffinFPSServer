@@ -171,5 +171,36 @@ public class ServerSend
         }
     }
 
+    public static void CreateBoundary(int _toClient, Vector3 _position, float radius)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.createBoundary))
+        {
+            _packet.Write(_position);
+            _packet.Write(radius);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerStartGrapple(int _toClient)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerStartGrapple))
+        {
+            _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerStopGrapple(int _toClient)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerStopGrapple))
+        {
+            _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
     #endregion
 }
