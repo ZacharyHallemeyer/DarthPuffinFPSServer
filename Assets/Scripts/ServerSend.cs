@@ -136,12 +136,12 @@ public class ServerSend
 
     /// <summary>Sends a player's updated rotation to all clients except to himself (to avoid overwriting the local player's rotation).</summary>
     /// <param name="_player">The player whose rotation to update.</param>
-    public static void PlayerRotation(Player _player)
+    public static void PlayerRotation(Player _player, Quaternion orientation)
     {
         using (Packet _packet = new Packet((int)ServerPackets.playerRotation))
         {
             _packet.Write(_player.id);
-            _packet.Write(_player.transform.rotation);
+            _packet.Write(_player.transform.localRotation * orientation);
 
             SendUDPDataToAll(_player.id, _packet);
         }
@@ -232,20 +232,37 @@ public class ServerSend
         }
     }
 
-    public static void PlayerSingleFire(int _toClient)
+    public static void PlayerSingleFire(int _toClient, int _currentAmmo, int _reserveAmmo)
     {
         using (Packet _packet = new Packet((int)ServerPackets.playerSinglefire))
         {
             _packet.Write(_toClient);
+            _packet.Write(_currentAmmo);
+            _packet.Write(_reserveAmmo);
 
             SendTCPData(_toClient, _packet);
         }
     }
-    public static void PlayerAutomaticFire(int _toClient)
+
+    public static void PlayerStartAutomaticFire(int _toClient, int _currentAmmo, int _reserveAmmo)
     {
-        using (Packet _packet = new Packet((int)ServerPackets.playerAutomaticfire))
+        using (Packet _packet = new Packet((int)ServerPackets.playerStartAutomaticFire))
         {
             _packet.Write(_toClient);
+            _packet.Write(_currentAmmo);
+            _packet.Write(_reserveAmmo);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerContinueAutomaticFire(int _toClient, int _currentAmmo, int _reserveAmmo)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerContinueAutomaticFire))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_currentAmmo);
+            _packet.Write(_reserveAmmo);
 
             SendTCPData(_toClient, _packet);
         }
@@ -261,44 +278,28 @@ public class ServerSend
         }
     }
 
-    public static void PlayerReload(int _toClient)
+    public static void PlayerReload(int _toClient, int _currentAmmo, int _reserveAmmo)
     {
         using (Packet _packet = new Packet((int)ServerPackets.playerReload))
         {
             _packet.Write(_toClient);
+            _packet.Write(_currentAmmo);
+            _packet.Write(_reserveAmmo);
 
             SendTCPData(_toClient, _packet);
         }
     }
 
-    public static void PlayerSwitchWeapon(int _toClient, string _gunName)
+    public static void PlayerSwitchWeapon(int _toClient, string _gunName, int _currentAmmo, int _reserveAmmo)
     {
         using (Packet _packet = new Packet((int)ServerPackets.playerSwitchWeapon))
         {
             _packet.Write(_toClient);
+            _packet.Write(_currentAmmo);
+            _packet.Write(_reserveAmmo);
             _packet.Write(_gunName);
 
             SendTCPData(_toClient, _packet);
-        }
-    }
-
-    public static void PlayerInitGun(int _toClient, string _gunName)
-    {
-        using (Packet _packet = new Packet((int)ServerPackets.playerInitGun))
-        {
-            _packet.Write(_toClient);
-            _packet.Write(_gunName);
-
-            SendTCPData(_toClient, _packet);
-        }
-        foreach(Client _client in Server.clients.Values)
-        {
-            if(_client.player != null)
-            {
-                Debug.Log("Client id: " + _client.id);
-                //if(_client.id != _toClient)
-                    //OtherPlayerSwitchedWeapon(_toClient, _client.id, _gunName);
-            }
         }
     }
 

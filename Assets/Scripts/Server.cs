@@ -133,6 +133,8 @@ public class Server
             { (int)ClientPackets.playerStopGrapple, ServerHandle.PlayerStopGrapple },
             { (int)ClientPackets.playerStartShoot, ServerHandle.PlayerStartShoot },
             { (int)ClientPackets.playerStopShoot, ServerHandle.PlayerStopShoot },
+            { (int)ClientPackets.playerReload, ServerHandle.PlayerReload },
+            { (int)ClientPackets.playerSwitchWeapon, ServerHandle.PlayerSwitchWeapon },
         };
         Debug.Log("Initialized packets.");
     }

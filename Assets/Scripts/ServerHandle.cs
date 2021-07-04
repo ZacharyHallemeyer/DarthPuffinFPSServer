@@ -19,15 +19,11 @@ public class ServerHandle
 
     public static void PlayerMovement(int _fromClient, Packet _packet)
     {
-        bool[] _inputsBool = new bool[_packet.ReadInt()];
-        for (int i = 0; i < _inputsBool.Length; i++)
-        {
-            _inputsBool[i] = _packet.ReadBool();
-        }
+        Vector2 _moveDirection = _packet.ReadVector2();
         Quaternion _rotation = _packet.ReadQuaternion();
         bool _isAnimInProgress = _packet.ReadBool();
 
-        Server.clients[_fromClient].player.SetInput(_inputsBool, _rotation, _isAnimInProgress);
+        Server.clients[_fromClient].player.SetInput(_moveDirection, _rotation, _isAnimInProgress);
     }
 
     public static void PlayerStartGrapple(int _fromClient, Packet _packet)
@@ -53,5 +49,15 @@ public class ServerHandle
     public static void PlayerStopShoot(int _fromClient, Packet _packet)
     {
         Server.clients[_fromClient].player.StopShootContoller();
+    }
+
+    public static void PlayerReload(int _fromClient, Packet _packet)
+    {
+        Server.clients[_fromClient].player.Reload();
+    }
+
+    public static void PlayerSwitchWeapon(int _fromClient, Packet _packet)
+    {
+        Server.clients[_fromClient].player.SwitchWeapon();
     }
 }

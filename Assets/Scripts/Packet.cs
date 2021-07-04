@@ -20,11 +20,11 @@ public enum ServerPackets
     playerStopGrapple,
     otherPlayerSwitchedWeapon,
     playerSinglefire,
-    playerAutomaticfire,
+    playerStartAutomaticFire,
+    playerContinueAutomaticFire,
     playerStopAutomaticFire,
     playerReload,
     playerSwitchWeapon,
-    playerInitGun
 }
 
 /// <summary>Sent from client to server.</summary>
@@ -36,6 +36,8 @@ public enum ClientPackets
     playerStopGrapple,
     playerStartShoot,
     playerStopShoot,
+    playerReload,
+    playerSwitchWeapon,
     playerThrowItem
 }
 

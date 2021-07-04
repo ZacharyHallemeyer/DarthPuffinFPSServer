@@ -15,7 +15,7 @@ public class Player : MonoBehaviour
     public Transform orientation;
 
     // Input
-    private bool[] inputsBool;
+    private Vector2 moveDirection;
 
     // Movement variables
     private readonly int moveSpeed = 4500;
@@ -128,7 +128,6 @@ public class Player : MonoBehaviour
         username = _username;
         health = maxHealth;
 
-        inputsBool = new bool[7];
         SetGunInformation();
     }
 
@@ -231,8 +230,6 @@ public class Player : MonoBehaviour
             else
                 StopGrapple();
         }
-        if (inputsBool[6])
-            SwitchWeapon();
     }
 
     private void Update()
@@ -244,9 +241,9 @@ public class Player : MonoBehaviour
     /// <summary>Updates the player input with newly received input.</summary>
     /// <param name="_inputs">The new key inputs.</param>
     /// <param name="_rotation">The new rotation.</param>
-    public void SetInput(bool[] _inputsBools, Quaternion _rotation, bool _isAnimInProgress)
+    public void SetInput(Vector2 _moveDirection, Quaternion _rotation, bool _isAnimInProgress)
     {
-        inputsBool = _inputsBools;
+        moveDirection = _moveDirection;
 
         orientation.localRotation = _rotation;
         isAnimInProgress = _isAnimInProgress;
@@ -254,28 +251,10 @@ public class Player : MonoBehaviour
 
     private void GetInput()
     {
-        Vector2 _inputDirection = Vector2.zero;
-        if (inputsBool[0]) // W
-        {
-            _inputDirection.y += 1;
-        }
-        if (inputsBool[1]) // S
-        {
-            _inputDirection.y -= 1;
-        }
-        if (inputsBool[2]) // A
-        {
-            _inputDirection.x -= 1;
-        }
-        if (inputsBool[3]) // D
-        {
-            _inputDirection.x += 1;
-        }
-
         if (isGrounded)
-            Movement(_inputDirection);
-        else if (_inputDirection.x != 0 || _inputDirection.y != 0)
-            JetPackMovement(_inputDirection);
+            Movement(moveDirection);
+        else if (moveDirection.x != 0 || moveDirection.y != 0)
+            JetPackMovement(moveDirection);
 
         // JetPack
             // TODO
@@ -423,14 +402,15 @@ public class Player : MonoBehaviour
     public void ShootController(Vector3 _firePoint, Vector3 _fireDirection)
     {
         if (health <= 0) return;
+        if (isAnimInProgress) return;
 
         firePoint = _firePoint;
         fireDirection = _fireDirection;
 
-        if(!isAnimInProgress && !isShooting)
+        if(!isShooting)
         {
             if (currentGun.isAutomatic)
-                InvokeRepeating("AutomaticShoot", 0f, currentGun.fireRate);
+                StartAutomaticFire();
             else
                 SingleFireShoot();
         }
@@ -443,11 +423,12 @@ public class Player : MonoBehaviour
 
     public void SingleFireShoot()
     {
-        ServerSend.PlayerSingleFire(id);
+        isAnimInProgress = true;
+        currentGun.currentAmmo--;
+        ServerSend.PlayerSingleFire(id, currentGun.currentAmmo, currentGun.reserveAmmo);
         // Reduce accuracy by a certain value 
         Vector3 reduceAccuracy = fireDirection + new Vector3(Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
                                                                 Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset));
-        currentGun.currentAmmo--;
 
         // Reload if current ammo is zero
         if (currentGun.currentAmmo <= 0)
@@ -457,8 +438,6 @@ public class Player : MonoBehaviour
                 Reload();
             }
         }
-
-        //playerUI.ChangeGunUIText(currentGun.currentAmmo, currentGun.reserveAmmo);
 
         if (currentGun.name == "Pistol")
         {
@@ -480,7 +459,7 @@ public class Player : MonoBehaviour
                 Ray ray = new Ray(firePoint, trajectory);
                 if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
                 {
-
+                    // TODO Inflict damage
                 }
             }
         }
@@ -494,14 +473,21 @@ public class Player : MonoBehaviour
         }
     }
 
+    public void StartAutomaticFire()
+    {
+        isShooting = true;
+        ServerSend.PlayerStartAutomaticFire(id, currentGun.currentAmmo, currentGun.reserveAmmo);
+        InvokeRepeating("AutomaticShoot", 0f, currentGun.fireRate);
+    }
+
     public void AutomaticShoot()
     {
-        ServerSend.PlayerAutomaticFire(id);
         // Reduce accuracy by a certain value 
+        currentGun.currentAmmo--;
+        ServerSend.PlayerContinueAutomaticFire(id, currentGun.currentAmmo, currentGun.reserveAmmo);
         Vector3 reduceAccuracy = fireDirection + new Vector3(Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
                                                                 Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset));
 
-        currentGun.currentAmmo--;
 
         // Reload if current ammo is zero
         if (currentGun.currentAmmo <= 0)
@@ -511,7 +497,6 @@ public class Player : MonoBehaviour
                 Reload();
         }
 
-        //playerUI.ChangeGunUIText(currentGun.currentAmmo, currentGun.reserveAmmo);
 
         Ray ray = new Ray(firePoint, reduceAccuracy);
         if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
@@ -529,7 +514,9 @@ public class Player : MonoBehaviour
 
     public void Reload()
     {
-        ServerSend.PlayerReload(id);
+        if (isShooting && currentGun.isAutomatic)
+            StopAutomaticShoot();
+
         // Reload gun
         if (currentGun.reserveAmmo > currentGun.magSize)
         {
@@ -549,6 +536,7 @@ public class Player : MonoBehaviour
                 currentGun.reserveAmmo = 0;
             }
         }
+        ServerSend.PlayerReload(id, currentGun.currentAmmo, currentGun.reserveAmmo);
     }
 
     public void SwitchWeapon()
@@ -559,7 +547,8 @@ public class Player : MonoBehaviour
         GunInformation temp = currentGun;
         currentGun = secondaryGun;
         secondaryGun = temp;
-        //ServerSend.PlayerSwitchWeapon();
+
+        ServerSend.PlayerSwitchWeapon(id, currentGun.name, currentGun.currentAmmo, currentGun.reserveAmmo);
     }
 
     #endregion
@@ -688,6 +677,6 @@ public class Player : MonoBehaviour
     public void SendPlayerData()
     {
         ServerSend.PlayerPosition(this);
-        ServerSend.PlayerRotation(this);
+        ServerSend.PlayerRotation(this, orientation.localRotation);
     }
 }
