@@ -125,7 +125,7 @@ public class ServerSend
             _packet.Write(_player.id);
             _packet.Write(_player.transform.rotation);
 
-            SendUDPDataToAll(_packet);
+            SendUDPDataToAll(_player.id, _packet);
         }
     }
 
@@ -200,6 +200,92 @@ public class ServerSend
 
             SendTCPData(_toClient, _packet);
         }
+    }
+
+    public static void OtherPlayerSwitchedWeapon(int _fromClient, string _gunName)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerStopGrapple))
+        {
+            _packet.Write(_fromClient);
+            _packet.Write(_gunName);
+
+            SendTCPDataToAll(_fromClient, _packet);
+        }
+    }
+
+    public static void PlayerSingleFire(int _toClient)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerSinglefire))
+        {
+            _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+    public static void PlayerAutomaticFire(int _toClient)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerAutomaticfire))
+        {
+            _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerStopAutomaticFire(int _toClient)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerStopAutomaticFire))
+        {
+            _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerReload(int _toClient)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerReload))
+        {
+            _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerSwitchWeapon(int _toClient, string _gunName)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerSwitchWeapon))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_gunName);
+
+            SendTCPData(_toClient, _packet);
+        }
+        OtherPlayerSwitchedWeapon(_toClient, _gunName);
+    }
+
+    public static void PlayerInitGun(int _toClient, string _gunName)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerInitGun))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_gunName);
+
+            SendTCPData(_toClient, _packet);
+        }
+        //OtherPlayerSwitchedWeapon(_toClient, _gunName);
+    }
+
+    public static void SpawnShootHitParticle(Vector3 _hitPoint)
+    {
+        /*
+        using (Packet _packet = new Packet((int)ServerPackets.playerShootHitParticle))
+        {
+            _packet.Write(_hitPoint);
+
+            SendTCPDataToAll(_packet);
+        }
+        */
     }
 
     #endregion

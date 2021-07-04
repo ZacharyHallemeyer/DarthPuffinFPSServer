@@ -208,6 +208,7 @@ MonoBehaviour:
   gravityForce: 100
   maxDistanceFromOrigin: 600
   forceBackToOrigin: 4500
+  lastOrientationRotation: {x: 0, y: 0, z: 0, w: 0}
   jetPackForce: 1550
   maxJetPackTime: 5
   currentJetPackTime: 0
@@ -221,6 +222,15 @@ MonoBehaviour:
   maxGrappleTime: 1000
   grappleRecoveryIncrement: 50
   timeLeftToGrapple: 0
+  timeSinceLastShoot: 5
+  gunNames: []
+  whatIsShootable:
+    serializedVersion: 2
+    m_Bits: 1792
+  isShooting: 0
+  firePoint: {fileID: 0}
+  fireDirection: {x: 0, y: 0, z: 0}
+  isAnimInProgress: 0
 --- !u!1 &7612817930700101615
 GameObject:
   m_ObjectHideFlags: 0

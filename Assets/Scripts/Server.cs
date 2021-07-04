@@ -125,12 +125,15 @@ public class Server
             clients.Add(i, new Client(i));
         }
 
+        Debug.Log("Made it here");
         packetHandlers = new Dictionary<int, PacketHandler>()
         {
             { (int)ClientPackets.welcomeReceived, ServerHandle.WelcomeReceived },
             { (int)ClientPackets.playerMovement, ServerHandle.PlayerMovement },
             { (int)ClientPackets.playerStartGrapple, ServerHandle.PlayerStartGrapple },
             { (int)ClientPackets.playerStopGrapple, ServerHandle.PlayerStopGrapple },
+            { (int)ClientPackets.playerStartShoot, ServerHandle.PlayerStartShoot },
+            { (int)ClientPackets.playerStopShoot, ServerHandle.PlayerStopShoot },
         };
         Debug.Log("Initialized packets.");
     }

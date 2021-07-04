@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    #region Variables
     // Generic variables
     public int id;
     public string username;
@@ -73,10 +74,54 @@ public class Player : MonoBehaviour
     public bool IsGrappling { get; private set; }
     public Vector3 GrapplePoint { get; private set; }
 
+    // Gun Variables
+
+    public class GunInformation
+    {
+        public string name;
+        public GameObject gunContainer;
+        public ParticleSystem bullet;
+        public ParticleSystem gun;
+        public float originalGunRadius;
+        public int magSize;
+        public int ammoIncrementor;
+        public int reserveAmmo;
+        public int currentAmmo;
+        public float damage;
+        public float fireRate;
+        public float accuaracyOffset;
+        public float reloadTime;
+        public float range;
+        public float rightHandPosition;
+        public float leftHandPosition;
+        public bool isAutomatic;
+    }
+
+    public Dictionary<string, GunInformation> allGunInformation { get; private set; } = new Dictionary<string, GunInformation>();
+
+    //public float timeSinceLastShoot = 5f;       // Garbage value
+
+    // Guns
+    public GunInformation currentGun;
+    public GunInformation secondaryGun;
+
+    public string[] gunNames;
+
+    public LayerMask whatIsShootable;
+    public bool isShooting = false;
+
+    private Vector3 firePoint;
+    private Vector3 fireDirection;
+
+    public bool isAnimInProgress;
+
+    #endregion
+
     private void Start()
     {
         maxDistanceFromOrigin = EnvironmentGenerator.BoundaryDistanceFromOrigin;
         currentJetPackTime = maxJetPackTime;
+        ServerSend.PlayerInitGun(id, currentGun.name);
     }
 
     public void Initialize(int _id, string _username)
@@ -87,12 +132,98 @@ public class Player : MonoBehaviour
 
         inputsBool = new bool[7];
         inputsVector2 = new Vector2[1];
+        SetGunInformation();
+    } 
+
+    public void SetGunInformation()
+    {
+        allGunInformation["Pistol"] = new GunInformation
+        {
+            name = "Pistol",
+            magSize = 6,
+            ammoIncrementor = 60,
+            reserveAmmo = 60,
+            currentAmmo = 6,
+            damage = 30,
+            fireRate = .7f,
+            accuaracyOffset = .001f,
+            reloadTime = 1f,
+            range = 1000f,
+            rightHandPosition = -.3f,
+            leftHandPosition = -1.5f,
+            isAutomatic = false,
+        };
+
+        allGunInformation["SMG"] = new GunInformation
+        {
+            name = "SMG",
+            magSize = 30,
+            ammoIncrementor = 300,
+            reserveAmmo = 300,
+            currentAmmo = 30,
+            damage = 10,
+            fireRate = .1f,
+            accuaracyOffset = .025f,
+            reloadTime = 1f,
+            range = 1000f,
+            rightHandPosition = -.3f,
+            leftHandPosition = -1.5f,
+            isAutomatic = true,
+        };
+
+        allGunInformation["AR"] = new GunInformation
+        {
+            name = "AR",
+            magSize = 20,
+            ammoIncrementor = 260,
+            reserveAmmo = 260,
+            currentAmmo = 20,
+            damage = 20,
+            fireRate = .2f,
+            accuaracyOffset = .02f,
+            reloadTime = 1f,
+            range = 1000f,
+            rightHandPosition = -.3f,
+            leftHandPosition = -1.5f,
+            isAutomatic = true,
+        };
+
+        allGunInformation["Shotgun"] = new GunInformation
+        {
+            name = "Shotgun",
+            magSize = 8,
+            ammoIncrementor = 80,
+            reserveAmmo = 80,
+            currentAmmo = 8,
+            damage = 10,
+            fireRate = .7f,
+            accuaracyOffset = .1f,
+            reloadTime = 1f,
+            range = 75f,
+            rightHandPosition = -.3f,
+            leftHandPosition = -.3f,
+            isAutomatic = false,
+        };
+
+        int index = 0;
+        gunNames = new string[allGunInformation.Count];
+        foreach (string str in allGunInformation.Keys)
+        {
+            gunNames[index] = str;
+            index++;
+        }
+
+        do
+        {
+            currentGun = allGunInformation[gunNames[Random.Range(0, gunNames.Length)]];
+            secondaryGun = allGunInformation[gunNames[Random.Range(0, gunNames.Length)]];
+        } while (currentGun.name.Equals(secondaryGun.name));
     }
+
 
     /// <summary>Processes player input and moves the player.</summary>
     public void FixedUpdate()
     {
-        Debug.DrawRay(transform.position, -orientation.up);
         if (health <= 0) return;
         GetInput();
         GravityController();
@@ -101,12 +232,11 @@ public class Player : MonoBehaviour
             if (timeLeftToGrapple > maxGrappleTime / 4)
                 ContinueGrapple();
             else
-            {
-                Debug.Log("Stop Grapple called from fixed update");
                 StopGrapple();
-                ServerSend.PlayerStopGrapple(id);
-            }
         }
+        if (inputsBool[6])
+            SwitchWeapon();
+        Debug.Log(currentGun.currentAmmo);
     }
 
     private void Update()
@@ -118,12 +248,13 @@ public class Player : MonoBehaviour
     /// <summary>Updates the player input with newly received input.</summary>
     /// <param name="_inputs">The new key inputs.</param>
     /// <param name="_rotation">The new rotation.</param>
-    public void SetInput(bool[] _inputsBools, Vector2[] _inputsVector2, Quaternion _rotation)
+    public void SetInput(bool[] _inputsBools, Vector2[] _inputsVector2, Quaternion _rotation, bool _isAnimInProgress)
     {
         inputsBool = _inputsBools;
         inputsVector2 = _inputsVector2;
 
         orientation.localRotation = _rotation;
+        isAnimInProgress = _isAnimInProgress;
     }
 
     private void GetInput()
@@ -153,10 +284,6 @@ public class Player : MonoBehaviour
 
         // JetPack
             // TODO
-        // ADS
-            // TODO
-        ServerSend.PlayerPosition(this);
-        //ServerSend.PlayerRotation(this);
     }
 
     #region Movement
@@ -168,8 +295,7 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.forward * _inputDirection.y * moveSpeed * Time.deltaTime);
         rb.AddForce(orientation.right * _inputDirection.x * moveSpeed * Time.deltaTime);
 
-        ServerSend.PlayerPosition(this);
-        //ServerSend.PlayerRotation(this);
+        SendPlayerData();
     }
 
     #region JetPack
@@ -187,8 +313,7 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.forward * _inputDirection.y * jetPackForce * Time.deltaTime);
         rb.AddForce(orientation.right * _inputDirection.x * jetPackForce * Time.deltaTime);
 
-        ServerSend.PlayerPosition(this);
-        //ServerSend.PlayerRotation(this);
+        SendPlayerData();
     }
 
     public void JetPackUp()
@@ -201,9 +326,8 @@ public class Player : MonoBehaviour
         currentJetPackTime -= Time.deltaTime;
         //playerUIScript.SetJetPack(currentJetPackTime);
         rb.AddForce(orientation.up * jetPackForce * Time.deltaTime);
-        
-        ServerSend.PlayerPosition(this);
-        //ServerSend.PlayerRotation(this);
+
+        SendPlayerData();
     }
 
     public void JetPackDown()
@@ -217,8 +341,7 @@ public class Player : MonoBehaviour
         //playerUIScript.SetJetPack(currentJetPackTime);
         rb.AddForce(-orientation.up * jetPackForce * Time.deltaTime);
         
-        ServerSend.PlayerPosition(this);
-        //ServerSend.PlayerRotation(this);
+        SendPlayerData();
     }
 
     /// <summary>
@@ -246,6 +369,7 @@ public class Player : MonoBehaviour
         {
             //rb.velocity /= 2;
             rb.AddForce(-transform.position.normalized * forceBackToOrigin * Time.deltaTime);
+            SendPlayerData();
             return;
         }
 
@@ -260,6 +384,7 @@ public class Player : MonoBehaviour
                 ApplyGravity(_gravityObjects[i]);
             }
         }
+        SendPlayerData();
     }
 
     public Transform[] FindGravityObjects()
@@ -288,27 +413,10 @@ public class Player : MonoBehaviour
             // Rotate Player
             Quaternion desiredRotation = Quaternion.FromToRotation(_gravityObject.up, -(_gravityObject.position - transform.position).normalized);
             desiredRotation = Quaternion.Lerp(transform.localRotation, desiredRotation, Time.deltaTime * 2);
-
-            rb.MoveRotation(desiredRotation);
-            /*
-            if(!Physics.Raycast(transform.position, -orientation.up, transform.localScale.y))
-            {
-                Debug.Log("This is running");
-                rb.MoveRotation(Quaternion.Euler(
-                                            desiredRotation.eulerAngles.x,
-                                            desiredRotation.eulerAngles.y,
-                                            desiredRotation.eulerAngles.z
-                                            ));
-            }
-             */
-            // Rotate camera
-            // TODO (Maybe)
-
+            transform.localRotation = desiredRotation;
             // Add extra force to stick player to planet surface
             rb.AddForce((_gravityObject.position - transform.position) * gravityForce * 1 * Time.deltaTime);
         }
-        ServerSend.PlayerPosition(this);
-        //ServerSend.PlayerRotation(this);
         lastOrientationRotation = orientation.localRotation;
     }
 
@@ -317,17 +425,146 @@ public class Player : MonoBehaviour
 
     #region Weapons
 
-    public void Shoot(Vector3 _shootDirection)
+    public void ShootController(Vector3 _firePoint, Vector3 _fireDirection)
     {
         if (health <= 0) return;
 
-        /*
-        if (Physics.Raycast(shootOrigin.position, _shootDirection, out RaycastHit _hit, 25f))
+        firePoint = _firePoint;
+        fireDirection = _fireDirection;
+
+        if(!isAnimInProgress && !isShooting)
         {
-            if (_hit.collider.CompareTag("Player"))
-                _hit.collider.GetComponent<Player>().TakeDamage(50f);
+            if (currentGun.isAutomatic)
+                InvokeRepeating("AutomaticShoot", 0f, currentGun.fireRate);
+            else
+                SingleFireShoot();
         }
-        */
+    }
+
+    public void StopShootContoller()
+    {
+        StopAutomaticShoot();
+    }
+
+    public void SingleFireShoot()
+    {
+        ServerSend.PlayerSingleFire(id);
+        // Reduce accuracy by a certain value 
+        Vector3 reduceAccuracy = fireDirection + new Vector3(Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
+                                                                Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset));
+        currentGun.currentAmmo--;
+
+        // Reload if current ammo is zero
+        if (currentGun.currentAmmo <= 0)
+        {
+            if (currentGun.reserveAmmo > 0)
+            {
+                Reload();
+            }
+        }
+
+        //playerUI.ChangeGunUIText(currentGun.currentAmmo, currentGun.reserveAmmo);
+
+        if (currentGun.name == "Pistol")
+        {
+            Ray ray = new Ray(firePoint, reduceAccuracy);
+            if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
+            {
+                // TODO Inflict damage
+            }
+        }
+        // shotgun
+        else
+        {
+            Vector3 trajectory;
+            for (int i = 0; i < 10; i++)
+            {
+                trajectory = fireDirection + new Vector3(Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
+                                                                Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
+                                                                Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset));
+                Ray ray = new Ray(firePoint, trajectory);
+                if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
+                {
+
+                }
+            }
+        }
+        // Reload if current ammo is zero
+        if (currentGun.currentAmmo <= 0)
+        {
+            if (currentGun.reserveAmmo > 0)
+            {
+                Reload();
+            }
+        }
+    }
+
+    public void AutomaticShoot()
+    {
+        ServerSend.PlayerAutomaticFire(id);
+        // Reduce accuracy by a certain value 
+        Vector3 reduceAccuracy = fireDirection + new Vector3(Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
+                                                                Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset));
+
+        currentGun.currentAmmo--;
+
+        // Reload if current ammo is zero
+        if (currentGun.currentAmmo <= 0)
+        {
+            StopAutomaticShoot();
+            if (currentGun.reserveAmmo > 0)
+                Reload();
+        }
+
+        //playerUI.ChangeGunUIText(currentGun.currentAmmo, currentGun.reserveAmmo);
+
+        Ray ray = new Ray(firePoint, reduceAccuracy);
+        if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
+        {
+            // TODO Inflict damage
+        }
+    }
+
+    public void StopAutomaticShoot()
+    {
+        ServerSend.PlayerStopAutomaticFire(id);
+        CancelInvoke("AutomaticShoot");
+        isShooting = false;
+    }
+
+    public void Reload()
+    {
+        ServerSend.PlayerReload(id);
+        // Reload gun
+        if (currentGun.reserveAmmo > currentGun.magSize)
+        {
+            currentGun.reserveAmmo += -currentGun.magSize + currentGun.currentAmmo;
+            currentGun.currentAmmo = currentGun.magSize;
+        }
+        else
+        {
+            if (currentGun.magSize - currentGun.currentAmmo <= currentGun.reserveAmmo)
+            {
+                currentGun.reserveAmmo -= currentGun.magSize - currentGun.currentAmmo;
+                currentGun.currentAmmo = currentGun.magSize;
+            }
+            else
+            {
+                currentGun.currentAmmo += currentGun.reserveAmmo;
+                currentGun.reserveAmmo = 0;
+            }
+        }
+    }
+
+    public void SwitchWeapon()
+    {
+        StopAutomaticShoot();
+        isAnimInProgress = true;
+
+        GunInformation temp = currentGun;
+        currentGun = secondaryGun;
+        secondaryGun = temp;
+        //ServerSend.PlayerSwitchWeapon();
     }
 
     #endregion
@@ -341,12 +578,9 @@ public class Player : MonoBehaviour
     /// </summary>
     public void StartGrapple(Vector3 _direction)
     {
-        Debug.Log("Start Grapple is called");
         Ray ray = new Ray(transform.position, _direction);
-        Debug.Log(ray.ToString());
         if (Physics.Raycast(ray, out RaycastHit hit, maxGrappleDistance, whatIsGrapple))
         {
-            Debug.Log("Start Grapple started");
             if (Vector3.Distance(transform.position, hit.point) < minGrappleDistance)
                 return;
 
@@ -370,8 +604,6 @@ public class Player : MonoBehaviour
 
             ServerSend.PlayerStartGrapple(id);
         }
-        //else
-            //StopGrapple();
     }
 
     /// <summary>
@@ -381,10 +613,8 @@ public class Player : MonoBehaviour
     {
         timeLeftToGrapple -= Time.deltaTime;
         if (timeLeftToGrapple < 0)
-        {
             StopGrapple();
-        }
-
+    
         // Pull player to grapple point
         Vector3 direction = (GrapplePoint - transform.position).normalized;
         rb.AddForce(direction * 100 * Time.deltaTime, ForceMode.Impulse);
@@ -392,10 +622,8 @@ public class Player : MonoBehaviour
         // Prevent grapple from phasing through/into objectsz
         // (Game objects such as buildings must have a rotation for this section to work)
         if (Physics.Raycast(GrapplePoint, (transform.position - GrapplePoint), Vector3.Distance(GrapplePoint, transform.position) - 5, whatIsGrapple))
-        {
             StopGrapple();
-        }
-        ServerSend.PlayerPosition(this);
+        SendPlayerData();
     }
 
     /// <summary>
@@ -461,67 +689,10 @@ public class Player : MonoBehaviour
     }
 
     #endregion
-}
 
-/*
-if (Physics.Raycast(transform.position, Vector3.up, distance1))
-{
-    Debug.Log("UP!");
-    Debug.DrawRay(transform.position, Vector3.up);
-    transform.localRotation = Quaternion.Euler(
-                                            desiredRotation.eulerAngles.x,
-                                            transform.localRotation.y,
-                                            desiredRotation.eulerAngles.z
-                                            );
+    public void SendPlayerData()
+    {
+        ServerSend.PlayerPosition(this);
+        ServerSend.PlayerRotation(this);
+    }
 }
-if (Physics.Raycast(transform.position, Vector3.down, distance1))
-{
-    Debug.Log("DOWN!");
-    Debug.DrawRay(transform.position, Vector3.down);
-    transform.localRotation = Quaternion.Euler(
-                                          desiredRotation.eulerAngles.x,
-                                          transform.localEulerAngles.y,
-                                          desiredRotation.eulerAngles.z
-                                         );
-}
-if(Physics.Raycast(transform.position, Vector3.left, distance2))
-{
-    Debug.Log("LEFT!");
-    Debug.DrawRay(transform.position, Vector3.left);
-    transform.localRotation = Quaternion.Euler(
-                                          transform.localRotation.x,
-                                          desiredRotation.eulerAngles.y,
-                                          desiredRotation.eulerAngles.z
-                                         );
-}
-if (Physics.Raycast(transform.position, Vector3.right, distance2))
-{
-    Debug.Log("RIGHT!");
-    Debug.DrawRay(transform.position, Vector3.right);
-    transform.localRotation = Quaternion.Euler(
-                                          transform.localEulerAngles.x,
-                                          desiredRotation.eulerAngles.y,
-                                          desiredRotation.eulerAngles.z
-                                         );
-}
-if(Physics.Raycast(transform.position, Vector3.forward, distance2))
-{
-    Debug.Log("FORWARD!");
-    Debug.DrawRay(transform.position, Vector3.forward);
-    transform.localRotation = Quaternion.Euler(
-                                          desiredRotation.eulerAngles.x,
-                                          desiredRotation.eulerAngles.y,
-                                          transform.localRotation.z
-                                         );
-}
-if (Physics.Raycast(transform.position, Vector3.back, distance2))
-{
-    Debug.Log("BACK!");
-    Debug.DrawRay(transform.position, Vector3.back);
-    transform.localRotation = Quaternion.Euler(
-                                          desiredRotation.eulerAngles.x,
-                                          desiredRotation.eulerAngles.y,
-                                          transform.localEulerAngles.z
-                                         );
-}
-*/

@@ -30,8 +30,9 @@ public class ServerHandle
             _inputsVector2[i] = _packet.ReadVector2();
         }
         Quaternion _rotation = _packet.ReadQuaternion();
+        bool _isAnimInProgress = _packet.ReadBool();
 
-        Server.clients[_fromClient].player.SetInput(_inputsBool, _inputsVector2,_rotation);
+        Server.clients[_fromClient].player.SetInput(_inputsBool, _inputsVector2,_rotation, _isAnimInProgress);
     }
 
     public static void PlayerStartGrapple(int _fromClient, Packet _packet)
@@ -43,7 +44,19 @@ public class ServerHandle
 
     public static void PlayerStopGrapple(int _fromClient, Packet _packet)
     {
-        Debug.Log("Stop Grapple called from Player Stop Grapple");
         Server.clients[_fromClient].player.StopGrapple();
+    }
+
+    public static void PlayerStartShoot(int _fromClient, Packet _packet)
+    {
+        Vector3 _firePoint = _packet.ReadVector3();
+        Vector3 _fireDirection = _packet.ReadVector3();
+
+        Server.clients[_fromClient].player.ShootController(_firePoint, _fireDirection);
+    }
+
+    public static void PlayerStopShoot(int _fromClient, Packet _packet)
+    {
+        Server.clients[_fromClient].player.StopShootContoller();
     }
 }
