@@ -24,15 +24,10 @@ public class ServerHandle
         {
             _inputsBool[i] = _packet.ReadBool();
         }
-        Vector2[] _inputsVector2 = new Vector2[_packet.ReadInt()];
-        for(int i = 0; i < _inputsVector2.Length; i++)
-        {
-            _inputsVector2[i] = _packet.ReadVector2();
-        }
         Quaternion _rotation = _packet.ReadQuaternion();
         bool _isAnimInProgress = _packet.ReadBool();
 
-        Server.clients[_fromClient].player.SetInput(_inputsBool, _inputsVector2,_rotation, _isAnimInProgress);
+        Server.clients[_fromClient].player.SetInput(_inputsBool, _rotation, _isAnimInProgress);
     }
 
     public static void PlayerStartGrapple(int _fromClient, Packet _packet)

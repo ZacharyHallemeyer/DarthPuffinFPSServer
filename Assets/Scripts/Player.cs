@@ -16,7 +16,6 @@ public class Player : MonoBehaviour
 
     // Input
     private bool[] inputsBool;
-    private Vector2[] inputsVector2;
 
     // Movement variables
     private readonly int moveSpeed = 4500;
@@ -121,7 +120,6 @@ public class Player : MonoBehaviour
     {
         maxDistanceFromOrigin = EnvironmentGenerator.BoundaryDistanceFromOrigin;
         currentJetPackTime = maxJetPackTime;
-        ServerSend.PlayerInitGun(id, currentGun.name);
     }
 
     public void Initialize(int _id, string _username)
@@ -131,9 +129,8 @@ public class Player : MonoBehaviour
         health = maxHealth;
 
         inputsBool = new bool[7];
-        inputsVector2 = new Vector2[1];
         SetGunInformation();
-    } 
+    }
 
     public void SetGunInformation()
     {
@@ -236,7 +233,6 @@ public class Player : MonoBehaviour
         }
         if (inputsBool[6])
             SwitchWeapon();
-        Debug.Log(currentGun.currentAmmo);
     }
 
     private void Update()
@@ -248,10 +244,9 @@ public class Player : MonoBehaviour
     /// <summary>Updates the player input with newly received input.</summary>
     /// <param name="_inputs">The new key inputs.</param>
     /// <param name="_rotation">The new rotation.</param>
-    public void SetInput(bool[] _inputsBools, Vector2[] _inputsVector2, Quaternion _rotation, bool _isAnimInProgress)
+    public void SetInput(bool[] _inputsBools, Quaternion _rotation, bool _isAnimInProgress)
     {
         inputsBool = _inputsBools;
-        inputsVector2 = _inputsVector2;
 
         orientation.localRotation = _rotation;
         isAnimInProgress = _isAnimInProgress;

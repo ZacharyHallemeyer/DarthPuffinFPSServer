@@ -222,7 +222,8 @@ public class Client
             {
                 if (_client.id != id)
                 {
-                    ServerSend.SpawnPlayer(id, _client.player);
+                    ServerSend.SpawnPlayer(id, _client.player, _client.player.currentGun.name);
+                    ServerSend.OtherPlayerSwitchedWeapon(id, _client.id, _client.player.currentGun.name);
                 }
             }
         }
@@ -232,7 +233,7 @@ public class Client
         {
             if (_client.player != null)
             {
-                ServerSend.SpawnPlayer(_client.id, player);
+                ServerSend.SpawnPlayer(_client.id, player, player.currentGun.name);
             }
         }
 

@@ -125,7 +125,6 @@ public class Server
             clients.Add(i, new Client(i));
         }
 
-        Debug.Log("Made it here");
         packetHandlers = new Dictionary<int, PacketHandler>()
         {
             { (int)ClientPackets.welcomeReceived, ServerHandle.WelcomeReceived },

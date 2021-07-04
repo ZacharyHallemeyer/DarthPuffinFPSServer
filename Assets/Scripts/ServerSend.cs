@@ -98,6 +98,24 @@ public class ServerSend
             _packet.Write(_player.username);
             _packet.Write(_player.transform.position);
             _packet.Write(_player.transform.rotation);
+            _packet.Write(_player.currentGun.name);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    /// <summary>Tells a client to spawn a player.</summary>
+    /// <param name="_toClient">The client that should spawn the player.</param>
+    /// <param name="_player">The player to spawn.</param>
+    public static void SpawnPlayer(int _toClient, Player _player, string _gunName)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.spawnPlayer))
+        {
+            _packet.Write(_player.id);
+            _packet.Write(_player.username);
+            _packet.Write(_player.transform.position);
+            _packet.Write(_player.transform.rotation);
+            _packet.Write(_gunName);
 
             SendTCPData(_toClient, _packet);
         }
@@ -202,14 +220,15 @@ public class ServerSend
         }
     }
 
-    public static void OtherPlayerSwitchedWeapon(int _fromClient, string _gunName)
+    public static void OtherPlayerSwitchedWeapon(int _fromClient, int _toClient, string _gunName)
     {
-        using (Packet _packet = new Packet((int)ServerPackets.playerStopGrapple))
+        using (Packet _packet = new Packet((int)ServerPackets.otherPlayerSwitchedWeapon))
         {
             _packet.Write(_fromClient);
+            _packet.Write(_toClient);
             _packet.Write(_gunName);
 
-            SendTCPDataToAll(_fromClient, _packet);
+            SendTCPData(_toClient, _packet);
         }
     }
 
@@ -261,7 +280,6 @@ public class ServerSend
 
             SendTCPData(_toClient, _packet);
         }
-        OtherPlayerSwitchedWeapon(_toClient, _gunName);
     }
 
     public static void PlayerInitGun(int _toClient, string _gunName)
@@ -273,7 +291,15 @@ public class ServerSend
 
             SendTCPData(_toClient, _packet);
         }
-        //OtherPlayerSwitchedWeapon(_toClient, _gunName);
+        foreach(Client _client in Server.clients.Values)
+        {
+            if(_client.player != null)
+            {
+                Debug.Log("Client id: " + _client.id);
+                //if(_client.id != _toClient)
+                    //OtherPlayerSwitchedWeapon(_toClient, _client.id, _gunName);
+            }
+        }
     }
 
     public static void SpawnShootHitParticle(Vector3 _hitPoint)
