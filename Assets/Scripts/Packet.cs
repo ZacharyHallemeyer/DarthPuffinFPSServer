@@ -17,6 +17,7 @@ public enum ServerPackets
     createEnvironment,
     createBoundary,
     playerStartGrapple,
+    playerContinueGrapple,
     playerStopGrapple,
     otherPlayerSwitchedWeapon,
     playerSinglefire,
@@ -25,6 +26,7 @@ public enum ServerPackets
     playerStopAutomaticFire,
     playerReload,
     playerSwitchWeapon,
+    playerContinueJetPack,
 }
 
 /// <summary>Sent from client to server.</summary>
@@ -32,6 +34,8 @@ public enum ClientPackets
 {
     welcomeReceived = 1,
     playerMovement,
+    playerJetPackMovement,
+    playerMagnetize,
     playerStartGrapple,
     playerStopGrapple,
     playerStartShoot,

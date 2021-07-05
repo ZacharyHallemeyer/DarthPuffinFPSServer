@@ -26,6 +26,18 @@ public class ServerHandle
         Server.clients[_fromClient].player.SetInput(_moveDirection, _rotation, _isAnimInProgress);
     }
 
+    public static void PlayerJetPackMovement(int _fromClient, Packet _packet)
+    {
+        Vector3 _direction = _packet.ReadVector3();
+
+        Server.clients[_fromClient].player.JetPackMovement(_direction);
+    }
+
+    public static void PlayerMagnetize(int _fromClient, Packet _packet)
+    {
+        Server.clients[_fromClient].player.PlayerMagnetize();
+    }
+
     public static void PlayerStartGrapple(int _fromClient, Packet _packet)
     {
         Vector3 _direction = _packet.ReadVector3();

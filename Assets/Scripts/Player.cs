@@ -27,37 +27,20 @@ public class Player : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance = 1;
 
-    // Camera
-    public Transform playerCamPosition;
-    private float mouseX;
-    private float mouseY;
-    private float xRotation;
-    private float desiredX;
-    private float normalFOV = 60;
-    private float adsFOV = 40;
-    public float sensitivity = 2000f;
-    private float normalSensitivity = 2000f;
-    private float adsSensitivity = 500f;
-    // Default value for sens multipliers are 1 
-
-    public float sensMultiplier { get; set; } = 1f;
-    public float adsSensMultiplier { get; set; } = 1f;
-
     // Gravity variables (Disable use gravity for rigid body)
     public LayerMask whatIsGravityObject;
-    public float gravityMaxDistance = 20;
+    public float gravityMaxDistance = 500;
     public float gravityForce = 4500;
     public float maxDistanceFromOrigin = 600, forceBackToOrigin = 4500f;
     public Quaternion lastOrientationRotation;
 
     // JetPack 
-    public float jetPackForce = 1550f;
+    public float jetPackForce = 20;
     public float maxJetPackTime = 5f;
     public float currentJetPackTime;
     public float jetPackTimeIncrementor = .01f;
     public float jetPackRecoveryRepeatTime = .01f;
-    public float jetPackBurstCost = .5f;
-    public bool isJetPackRecoveryActive = false;
+    public bool isJetPackRecoveryActive = true;
 
     // Grappling Variables ==================
     // Components
@@ -67,11 +50,14 @@ public class Player : MonoBehaviour
     // Numerical variables
     private float maxGrappleDistance = 10000f, minGrappleDistance = 5f;
     public float maxGrappleTime = 1000f, grappleRecoveryIncrement = 50f;
-    public float timeLeftToGrapple;
+    public float timeLeftToGrapple, grappleTimeLimiter;
 
     public bool IsGrappleRecoveryInProgress { get; set; } = false;
     public bool IsGrappling { get; private set; }
     public Vector3 GrapplePoint { get; private set; }
+
+    // Magnetize
+    public int magnetizeForce = 100;
 
     // Gun Variables
 
@@ -120,6 +106,8 @@ public class Player : MonoBehaviour
     {
         maxDistanceFromOrigin = EnvironmentGenerator.BoundaryDistanceFromOrigin;
         currentJetPackTime = maxJetPackTime;
+        timeLeftToGrapple = maxGrappleTime;
+        grappleTimeLimiter = maxGrappleTime / 4;
     }
 
     public void Initialize(int _id, string _username)
@@ -142,7 +130,7 @@ public class Player : MonoBehaviour
             currentAmmo = 6,
             damage = 30,
             fireRate = .7f,
-            accuaracyOffset = .001f,
+            accuaracyOffset = 0,
             reloadTime = 1f,
             range = 1000f,
             rightHandPosition = -.3f,
@@ -221,11 +209,18 @@ public class Player : MonoBehaviour
     public void FixedUpdate()
     {
         if (health <= 0) return;
-        GetInput();
         GravityController();
+
+        if (isGrounded)
+            Movement();
+        else if (!isJetPackRecoveryActive)
+        {
+            isJetPackRecoveryActive = true;
+            InvokeRepeating("JetPackRecovery", 0, jetPackRecoveryRepeatTime);
+        }
         if (IsGrappling)
         {
-            if (timeLeftToGrapple > maxGrappleTime / 4)
+            if (timeLeftToGrapple > 0)
                 ContinueGrapple();
             else
                 StopGrapple();
@@ -234,9 +229,17 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        // might move this line to fixed update because it is the only line in update
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, whatIsGround);
     }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.collider.CompareTag("GravityObject"))
+        {
+            rb.velocity /= 2;
+        }
+    }
+
 
     /// <summary>Updates the player input with newly received input.</summary>
     /// <param name="_inputs">The new key inputs.</param>
@@ -249,33 +252,37 @@ public class Player : MonoBehaviour
         isAnimInProgress = _isAnimInProgress;
     }
 
-    private void GetInput()
-    {
-        if (isGrounded)
-            Movement(moveDirection);
-        else if (moveDirection.x != 0 || moveDirection.y != 0)
-            JetPackMovement(moveDirection);
-
-        // JetPack
-            // TODO
-    }
-
     #region Movement
 
     /// <summary>Calculates the player's desired movement direction and moves him.</summary>
     /// <param name="_inputDirection"></param>
-    private void Movement(Vector2 _inputDirection)
+    private void Movement()
     {
-        rb.AddForce(orientation.forward * _inputDirection.y * moveSpeed * Time.deltaTime);
-        rb.AddForce(orientation.right * _inputDirection.x * moveSpeed * Time.deltaTime);
+        rb.AddForce(orientation.forward * moveDirection.y * moveSpeed * Time.deltaTime);
+        rb.AddForce(orientation.right * moveDirection.x * moveSpeed * Time.deltaTime);
+
+        if (!isJetPackRecoveryActive)
+        {
+            isJetPackRecoveryActive = true;
+            InvokeRepeating("JetPackRecovery", 0, jetPackRecoveryRepeatTime);
+        }
 
         SendPlayerData();
     }
+
+    #endregion
 
     #region JetPack
+
     // if grounded - normal movement else jetpack
-    public void JetPackMovement(Vector2 _inputDirection)
+    public void JetPackMovement(Vector3 _direction)
     {
+        if(currentJetPackTime < 0)
+        {
+            isJetPackRecoveryActive = true;
+            InvokeRepeating("JetPackRecovery", 0, jetPackRecoveryRepeatTime);
+            return;
+        }
         if (isJetPackRecoveryActive)
         {
             isJetPackRecoveryActive = false;
@@ -283,38 +290,9 @@ public class Player : MonoBehaviour
         }
 
         currentJetPackTime -= Time.deltaTime;
-        //playerUIScript.SetJetPack(currentJetPackTime);
-        rb.AddForce(orientation.forward * _inputDirection.y * jetPackForce * Time.deltaTime);
-        rb.AddForce(orientation.right * _inputDirection.x * jetPackForce * Time.deltaTime);
-
-        SendPlayerData();
-    }
-
-    public void JetPackUp()
-    {
-        if (isJetPackRecoveryActive)
-        {
-            isJetPackRecoveryActive = false;
-            CancelInvoke("JetPackRecovery");
-        }
-        currentJetPackTime -= Time.deltaTime;
-        //playerUIScript.SetJetPack(currentJetPackTime);
-        rb.AddForce(orientation.up * jetPackForce * Time.deltaTime);
-
-        SendPlayerData();
-    }
-
-    public void JetPackDown()
-    {
-        if (isJetPackRecoveryActive)
-        {
-            isJetPackRecoveryActive = false;
-            CancelInvoke("JetPackRecovery");
-        }
-        currentJetPackTime -= Time.deltaTime;
-        //playerUIScript.SetJetPack(currentJetPackTime);
-        rb.AddForce(-orientation.up * jetPackForce * Time.deltaTime);
-        
+        ServerSend.PlayerContinueJetPack(id, currentJetPackTime);
+        rb.AddForce(_direction * jetPackForce * Time.deltaTime, ForceMode.Impulse);
+        Debug.Log("JetPack movement finished");
         SendPlayerData();
     }
 
@@ -323,15 +301,55 @@ public class Player : MonoBehaviour
     /// </summary>
     public void JetPackRecovery()
     {
-        //playerUIScript.SetJetPack(currentJetPackTime);
-        currentJetPackTime += jetPackTimeIncrementor;
         if (currentJetPackTime > maxJetPackTime)
         {
+            currentJetPackTime = maxJetPackTime;
             isJetPackRecoveryActive = false;
             CancelInvoke("JetPackRecovery");
         }
+        ServerSend.PlayerContinueJetPack(id, currentJetPackTime);
+        currentJetPackTime += jetPackTimeIncrementor;
     }
     #endregion
+
+    #region Magnetize 
+    
+    public void PlayerMagnetize()
+    {
+        rb.velocity = Vector3.zero;
+        Vector3 _desiredPosition = FindNearestGravityObjectPosition();
+
+        Debug.Log("X: " + _desiredPosition.x + " Y: " + _desiredPosition.y + " Z: " + _desiredPosition.z);
+
+        rb.AddForce((_desiredPosition - transform.position) * magnetizeForce * Time.deltaTime, ForceMode.Impulse);
+    }
+
+    public Vector3 FindNearestGravityObjectPosition()
+    {
+        float _checkingDistance = 100, _errorCatcher = 0;
+        Collider[] _gravityObjectColiiders;
+        do
+        {
+            _gravityObjectColiiders = Physics.OverlapSphere(transform.position, _checkingDistance, whatIsGravityObject);
+            _checkingDistance += 100;
+            _errorCatcher++;
+        } while (_gravityObjectColiiders.Length == 0 || _errorCatcher > 10);
+
+        Transform _nearestGravityObject = _gravityObjectColiiders[0].transform;
+        float _lastDistance = 100000;   // garbage value
+        // Find closest gravity object
+        foreach (Collider _gravityObject in _gravityObjectColiiders)
+        {
+            if (Vector3.Distance(_gravityObject.transform.position, transform.position) < _lastDistance)
+            {
+                _lastDistance = Vector3.Distance(_gravityObject.transform.position, transform.position);
+                _nearestGravityObject = _gravityObject.transform;
+            }
+        }
+
+        Debug.Log(_nearestGravityObject.name);
+        return _nearestGravityObject.transform.position;
+    }
 
     #endregion
 
@@ -341,7 +359,6 @@ public class Player : MonoBehaviour
     {
         if (transform.position.magnitude > maxDistanceFromOrigin)
         {
-            //rb.velocity /= 2;
             rb.AddForce(-transform.position.normalized * forceBackToOrigin * Time.deltaTime);
             SendPlayerData();
             return;
@@ -442,9 +459,11 @@ public class Player : MonoBehaviour
         if (currentGun.name == "Pistol")
         {
             Ray ray = new Ray(firePoint, reduceAccuracy);
-            if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
+            if (Physics.Raycast(ray, out RaycastHit _hit, currentGun.range, whatIsShootable))
             {
-                // TODO Inflict damage
+                Debug.Log("HIT: " + _hit.collider.name);
+                if (_hit.collider.CompareTag("Player"))
+                    _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
             }
         }
         // shotgun
@@ -457,9 +476,10 @@ public class Player : MonoBehaviour
                                                                 Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset),
                                                                 Random.Range(-currentGun.accuaracyOffset, currentGun.accuaracyOffset));
                 Ray ray = new Ray(firePoint, trajectory);
-                if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
+                if (Physics.Raycast(ray, out RaycastHit _hit, currentGun.range, whatIsShootable))
                 {
-                    // TODO Inflict damage
+                    if (_hit.collider.CompareTag("Player"))
+                        _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
                 }
             }
         }
@@ -497,11 +517,11 @@ public class Player : MonoBehaviour
                 Reload();
         }
 
-
         Ray ray = new Ray(firePoint, reduceAccuracy);
-        if (Physics.Raycast(ray, out RaycastHit hit, currentGun.range, whatIsShootable))
+        if (Physics.Raycast(ray, out RaycastHit _hit, currentGun.range, whatIsShootable))
         {
-            // TODO Inflict damage
+            if (_hit.collider.CompareTag("Player"))
+                _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
         }
     }
 
@@ -549,6 +569,16 @@ public class Player : MonoBehaviour
         secondaryGun = temp;
 
         ServerSend.PlayerSwitchWeapon(id, currentGun.name, currentGun.currentAmmo, currentGun.reserveAmmo);
+        foreach(Client _client in Server.clients.Values)
+        {
+            if (_client.player != null)
+            {
+                if (_client.id != id)
+                {
+                    ServerSend.OtherPlayerSwitchedWeapon(id, _client.id, currentGun.name);
+                }
+            }
+        }
     }
 
     #endregion
@@ -562,6 +592,8 @@ public class Player : MonoBehaviour
     /// </summary>
     public void StartGrapple(Vector3 _direction)
     {
+        if (timeLeftToGrapple < grappleTimeLimiter)
+            return;
         Ray ray = new Ray(transform.position, _direction);
         if (Physics.Raycast(ray, out RaycastHit hit, maxGrappleDistance, whatIsGrapple))
         {
@@ -578,6 +610,8 @@ public class Player : MonoBehaviour
 
             // Create joint ("Grapple rope") and anchor to player and grapple point
             GrapplePoint = hit.point;
+            if (joint != null)
+                Destroy(joint);
             joint = transform.gameObject.AddComponent<SpringJoint>();
             joint.autoConfigureConnectedAnchor = false;
             joint.connectedAnchor = GrapplePoint;
@@ -596,6 +630,7 @@ public class Player : MonoBehaviour
     public void ContinueGrapple()
     {
         timeLeftToGrapple -= Time.deltaTime;
+        ServerSend.PlayerContinueGrapple(id, timeLeftToGrapple);
         if (timeLeftToGrapple < 0)
             StopGrapple();
     
@@ -638,6 +673,7 @@ public class Player : MonoBehaviour
         }
         else
             CancelInvoke("GrappleRecovery");
+        ServerSend.PlayerContinueGrapple(id, timeLeftToGrapple);
     }
 
     #endregion
@@ -654,7 +690,6 @@ public class Player : MonoBehaviour
         if (health <= 0)
         {
             health = 0;
-            //controller.enabled = false;
             transform.position = new Vector3(0, 25f, 0);
             ServerSend.PlayerPosition(this);
             StartCoroutine(Respawn());
@@ -668,7 +703,6 @@ public class Player : MonoBehaviour
         yield return new WaitForSeconds(5f);
 
         health = maxHealth;
-        //controller.enabled = true;
         ServerSend.PlayerRespawned(this);
     }
 
@@ -680,3 +714,7 @@ public class Player : MonoBehaviour
         ServerSend.PlayerRotation(this, orientation.localRotation);
     }
 }
+
+/*
+
+ */

@@ -90,23 +90,6 @@ public class ServerSend
     /// <summary>Tells a client to spawn a player.</summary>
     /// <param name="_toClient">The client that should spawn the player.</param>
     /// <param name="_player">The player to spawn.</param>
-    public static void SpawnPlayer(int _toClient, Player _player)
-    {
-        using (Packet _packet = new Packet((int)ServerPackets.spawnPlayer))
-        {
-            _packet.Write(_player.id);
-            _packet.Write(_player.username);
-            _packet.Write(_player.transform.position);
-            _packet.Write(_player.transform.rotation);
-            _packet.Write(_player.currentGun.name);
-
-            SendTCPData(_toClient, _packet);
-        }
-    }
-
-    /// <summary>Tells a client to spawn a player.</summary>
-    /// <param name="_toClient">The client that should spawn the player.</param>
-    /// <param name="_player">The player to spawn.</param>
     public static void SpawnPlayer(int _toClient, Player _player, string _gunName)
     {
         using (Packet _packet = new Packet((int)ServerPackets.spawnPlayer))
@@ -116,6 +99,10 @@ public class ServerSend
             _packet.Write(_player.transform.position);
             _packet.Write(_player.transform.rotation);
             _packet.Write(_gunName);
+            _packet.Write(_player.currentGun.currentAmmo);
+            _packet.Write(_player.currentGun.reserveAmmo);
+            _packet.Write(_player.maxGrappleTime);
+            _packet.Write(_player.maxJetPackTime);
 
             SendTCPData(_toClient, _packet);
         }
@@ -205,6 +192,17 @@ public class ServerSend
         using (Packet _packet = new Packet((int)ServerPackets.playerStartGrapple))
         {
             _packet.Write(_toClient);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void PlayerContinueGrapple(int _toClient, float _currentGrappleTime)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerContinueGrapple))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_currentGrappleTime);
 
             SendTCPData(_toClient, _packet);
         }
@@ -315,5 +313,15 @@ public class ServerSend
         */
     }
 
+    public static void PlayerContinueJetPack(int _toClient, float _currentJetPackTime)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerContinueJetPack))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_currentJetPackTime);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
     #endregion
 }
