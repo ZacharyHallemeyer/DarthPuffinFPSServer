@@ -153,6 +153,23 @@ public class ServerSend
 
             SendTCPDataToAll(_packet);
         }
+
+        foreach (Client _client in Server.clients.Values)
+        {
+            if (_client.player != null)
+            {
+                if (_client.id != _player.id)
+                {
+                    using (Packet _packet = new Packet((int)ServerPackets.otherPlayerTakenDamage))
+                    {
+                        _packet.Write(_player.id);
+                        _packet.Write(_client.id);
+
+                        SendTCPData(_client.id, _packet);
+                    }
+                }
+            }
+        }
     }
 
     public static void PlayerRespawned(Player _player)
@@ -208,6 +225,28 @@ public class ServerSend
         }
     }
 
+    public static void OtherPlayerContinueGrapple(int _fromClient, Vector3 _position, Vector3 _grapplePoint)
+    {
+        foreach(Client _client in Server.clients.Values)
+        {
+            if(_client.player != null)
+            {
+                if(_client.id != _fromClient)
+                {
+                    using (Packet _packet = new Packet((int)ServerPackets.otherPlayerContinueGrapple))
+                    {
+                        _packet.Write(_fromClient);
+                        _packet.Write(_client.id);
+                        _packet.Write(_position);
+                        _packet.Write(_grapplePoint);
+
+                        SendUDPData(_fromClient, _packet);
+                    }
+                }
+            }
+        }
+    }
+
     public static void PlayerStopGrapple(int _toClient)
     {
         using (Packet _packet = new Packet((int)ServerPackets.playerStopGrapple))
@@ -215,6 +254,22 @@ public class ServerSend
             _packet.Write(_toClient);
 
             SendTCPData(_toClient, _packet);
+        }
+        foreach (Client _client in Server.clients.Values)
+        {
+            if (_client.player != null)
+            {
+                if (_client.id != _toClient)
+                {
+                    using (Packet _packet = new Packet((int)ServerPackets.otherPlayerStopGrapple))
+                    {
+                        _packet.Write(_toClient);
+                        _packet.Write(_client.id);
+
+                        SendUDPData(_toClient, _packet);
+                    }
+                }
+            }
         }
     }
 
@@ -301,16 +356,15 @@ public class ServerSend
         }
     }
 
-    public static void SpawnShootHitParticle(Vector3 _hitPoint)
+    public static void PlayerShotLanded(int _toClient, Vector3 _hitPoint)
     {
-        /*
-        using (Packet _packet = new Packet((int)ServerPackets.playerShootHitParticle))
+        using (Packet _packet = new Packet((int)ServerPackets.playerShotLanded))
         {
+            _packet.Write(_toClient);
             _packet.Write(_hitPoint);
 
-            SendTCPDataToAll(_packet);
+            SendTCPData(_toClient, _packet);
         }
-        */
     }
 
     public static void PlayerContinueJetPack(int _toClient, float _currentJetPackTime)

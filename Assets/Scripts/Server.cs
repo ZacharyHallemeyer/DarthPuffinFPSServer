@@ -131,12 +131,14 @@ public class Server
             { (int)ClientPackets.playerMovement, ServerHandle.PlayerMovement },
             { (int)ClientPackets.playerJetPackMovement, ServerHandle.PlayerJetPackMovement },
             { (int)ClientPackets.playerStartGrapple, ServerHandle.PlayerStartGrapple },
+            { (int)ClientPackets.playerContinueGrappling, ServerHandle.PlayerContinueGrappling },
             { (int)ClientPackets.playerStopGrapple, ServerHandle.PlayerStopGrapple },
             { (int)ClientPackets.playerStartShoot, ServerHandle.PlayerStartShoot },
             { (int)ClientPackets.playerStopShoot, ServerHandle.PlayerStopShoot },
             { (int)ClientPackets.playerReload, ServerHandle.PlayerReload },
             { (int)ClientPackets.playerSwitchWeapon, ServerHandle.PlayerSwitchWeapon },
             { (int)ClientPackets.playerMagnetize, ServerHandle.PlayerMagnetize },
+            { (int)ClientPackets.playerUpdateShootDirection, ServerHandle.PlayerUpdateShootDirection },
         };
         Debug.Log("Initialized packets.");
     }

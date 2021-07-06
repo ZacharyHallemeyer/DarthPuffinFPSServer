@@ -19,7 +19,6 @@ public class Player : MonoBehaviour
 
     // Movement variables
     private readonly int moveSpeed = 4500;
-    private readonly int maxBaseSpeed = 20;
     public LayerMask whatIsGround;
     public bool isGrounded;
 
@@ -319,8 +318,6 @@ public class Player : MonoBehaviour
         rb.velocity = Vector3.zero;
         Vector3 _desiredPosition = FindNearestGravityObjectPosition();
 
-        Debug.Log("X: " + _desiredPosition.x + " Y: " + _desiredPosition.y + " Z: " + _desiredPosition.z);
-
         rb.AddForce((_desiredPosition - transform.position) * magnetizeForce * Time.deltaTime, ForceMode.Impulse);
     }
 
@@ -433,6 +430,12 @@ public class Player : MonoBehaviour
         }
     }
 
+    public void UpdateShootDirection(Vector3 _firePoint, Vector3 _fireDirection)
+    {
+        firePoint = _firePoint;
+        fireDirection = _fireDirection;
+    }
+
     public void StopShootContoller()
     {
         StopAutomaticShoot();
@@ -461,7 +464,7 @@ public class Player : MonoBehaviour
             Ray ray = new Ray(firePoint, reduceAccuracy);
             if (Physics.Raycast(ray, out RaycastHit _hit, currentGun.range, whatIsShootable))
             {
-                Debug.Log("HIT: " + _hit.collider.name);
+                ServerSend.PlayerShotLanded(id, _hit.point);
                 if (_hit.collider.CompareTag("Player"))
                     _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
             }
@@ -478,6 +481,7 @@ public class Player : MonoBehaviour
                 Ray ray = new Ray(firePoint, trajectory);
                 if (Physics.Raycast(ray, out RaycastHit _hit, currentGun.range, whatIsShootable))
                 {
+                    ServerSend.PlayerShotLanded(id, _hit.point);
                     if (_hit.collider.CompareTag("Player"))
                         _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
                 }
@@ -520,6 +524,7 @@ public class Player : MonoBehaviour
         Ray ray = new Ray(firePoint, reduceAccuracy);
         if (Physics.Raycast(ray, out RaycastHit _hit, currentGun.range, whatIsShootable))
         {
+            ServerSend.PlayerShotLanded(id, _hit.point);
             if (_hit.collider.CompareTag("Player"))
                 _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
         }
@@ -629,6 +634,7 @@ public class Player : MonoBehaviour
     /// </summary>
     public void ContinueGrapple()
     {
+        SendPlayerData();
         timeLeftToGrapple -= Time.deltaTime;
         ServerSend.PlayerContinueGrapple(id, timeLeftToGrapple);
         if (timeLeftToGrapple < 0)
@@ -714,7 +720,3 @@ public class Player : MonoBehaviour
         ServerSend.PlayerRotation(this, orientation.localRotation);
     }
 }
-
-/*
-
- */

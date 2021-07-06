@@ -45,6 +45,14 @@ public class ServerHandle
         Server.clients[_fromClient].player.StartGrapple(_direction);
     }
 
+    public static void PlayerContinueGrappling(int _fromClient, Packet _packet)
+    {
+        Vector3 _position = _packet.ReadVector3();
+        Vector3 _grapplePoint = _packet.ReadVector3();
+
+        //ServerSend.OtherPlayerContinueGrapple(_fromClient, _position, _grapplePoint);
+    }
+
     public static void PlayerStopGrapple(int _fromClient, Packet _packet)
     {
         Server.clients[_fromClient].player.StopGrapple();
@@ -56,6 +64,14 @@ public class ServerHandle
         Vector3 _fireDirection = _packet.ReadVector3();
 
         Server.clients[_fromClient].player.ShootController(_firePoint, _fireDirection);
+    }
+
+    public static void PlayerUpdateShootDirection(int _fromClient, Packet _packet)
+    {
+        Vector3 _firePoint = _packet.ReadVector3();
+        Vector3 _fireDirection = _packet.ReadVector3();
+
+        Server.clients[_fromClient].player.UpdateShootDirection(_firePoint, _fireDirection);
     }
 
     public static void PlayerStopShoot(int _fromClient, Packet _packet)
