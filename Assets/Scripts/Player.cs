@@ -243,11 +243,15 @@ public class Player : MonoBehaviour
     /// <summary>Updates the player input with newly received input.</summary>
     /// <param name="_inputs">The new key inputs.</param>
     /// <param name="_rotation">The new rotation.</param>
-    public void SetInput(Vector2 _moveDirection, Quaternion _rotation, bool _isAnimInProgress)
+    public void SetMovementInput(Vector2 _moveDirection, Quaternion _rotation)
     {
         moveDirection = _moveDirection;
 
         orientation.localRotation = _rotation;
+    }
+
+    public void SetActionInput(bool _isAnimInProgress)
+    {
         isAnimInProgress = _isAnimInProgress;
     }
 
@@ -291,7 +295,6 @@ public class Player : MonoBehaviour
         currentJetPackTime -= Time.deltaTime;
         ServerSend.PlayerContinueJetPack(id, currentJetPackTime);
         rb.AddForce(_direction * jetPackForce * Time.deltaTime, ForceMode.Impulse);
-        Debug.Log("JetPack movement finished");
         SendPlayerData();
     }
 
@@ -343,8 +346,6 @@ public class Player : MonoBehaviour
                 _nearestGravityObject = _gravityObject.transform;
             }
         }
-
-        Debug.Log(_nearestGravityObject.name);
         return _nearestGravityObject.transform.position;
     }
 

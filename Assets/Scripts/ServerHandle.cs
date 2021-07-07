@@ -21,9 +21,8 @@ public class ServerHandle
     {
         Vector2 _moveDirection = _packet.ReadVector2();
         Quaternion _rotation = _packet.ReadQuaternion();
-        bool _isAnimInProgress = _packet.ReadBool();
 
-        Server.clients[_fromClient].player.SetInput(_moveDirection, _rotation, _isAnimInProgress);
+        Server.clients[_fromClient].player.SetMovementInput(_moveDirection, _rotation);
     }
 
     public static void PlayerJetPackMovement(int _fromClient, Packet _packet)
@@ -31,6 +30,13 @@ public class ServerHandle
         Vector3 _direction = _packet.ReadVector3();
 
         Server.clients[_fromClient].player.JetPackMovement(_direction);
+    }
+
+    public static void PlayerActions(int _fromClient, Packet _packet)
+    {
+        bool _isAnimInProgress = _packet.ReadBool();
+
+        Server.clients[_fromClient].player.SetActionInput(_isAnimInProgress);
     }
 
     public static void PlayerMagnetize(int _fromClient, Packet _packet)

@@ -130,6 +130,7 @@ public class Server
             { (int)ClientPackets.welcomeReceived, ServerHandle.WelcomeReceived },
             { (int)ClientPackets.playerMovement, ServerHandle.PlayerMovement },
             { (int)ClientPackets.playerJetPackMovement, ServerHandle.PlayerJetPackMovement },
+            { (int)ClientPackets.playerActions, ServerHandle.PlayerActions },
             { (int)ClientPackets.playerStartGrapple, ServerHandle.PlayerStartGrapple },
             { (int)ClientPackets.playerContinueGrappling, ServerHandle.PlayerContinueGrappling },
             { (int)ClientPackets.playerStopGrapple, ServerHandle.PlayerStopGrapple },
