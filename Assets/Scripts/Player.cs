@@ -14,6 +14,10 @@ public class Player : MonoBehaviour
     public Rigidbody rb;
     public Transform orientation;
 
+    // Stats
+    public int currentKills = 0;
+    public int currentDeaths = 0;
+
     // Input
     private Vector2 moveDirection;
 
@@ -35,10 +39,6 @@ public class Player : MonoBehaviour
 
     // JetPack 
     public float jetPackForce = 20;
-    public float maxJetPackTime = 5f;
-    public float currentJetPackTime;
-    public float jetPackTimeIncrementor = .01f;
-    public float jetPackRecoveryRepeatTime = .01f;
     public bool isJetPackRecoveryActive = true;
 
     // Grappling Variables ==================
@@ -83,8 +83,6 @@ public class Player : MonoBehaviour
 
     public Dictionary<string, GunInformation> allGunInformation { get; private set; } = new Dictionary<string, GunInformation>();
 
-    //public float timeSinceLastShoot = 5f;       // Garbage value
-
     // Guns
     public GunInformation currentGun;
     public GunInformation secondaryGun;
@@ -104,7 +102,6 @@ public class Player : MonoBehaviour
     private void Start()
     {
         maxDistanceFromOrigin = EnvironmentGenerator.BoundaryDistanceFromOrigin;
-        currentJetPackTime = maxJetPackTime;
         timeLeftToGrapple = maxGrappleTime;
         grappleTimeLimiter = maxGrappleTime / 4;
     }
@@ -212,11 +209,6 @@ public class Player : MonoBehaviour
 
         if (isGrounded)
             Movement();
-        else if (!isJetPackRecoveryActive)
-        {
-            isJetPackRecoveryActive = true;
-            InvokeRepeating("JetPackRecovery", 0, jetPackRecoveryRepeatTime);
-        }
         if (IsGrappling)
         {
             if (timeLeftToGrapple > 0)
@@ -264,12 +256,6 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.forward * moveDirection.y * moveSpeed * Time.deltaTime);
         rb.AddForce(orientation.right * moveDirection.x * moveSpeed * Time.deltaTime);
 
-        if (!isJetPackRecoveryActive)
-        {
-            isJetPackRecoveryActive = true;
-            InvokeRepeating("JetPackRecovery", 0, jetPackRecoveryRepeatTime);
-        }
-
         SendPlayerData();
     }
 
@@ -277,40 +263,14 @@ public class Player : MonoBehaviour
 
     #region JetPack
 
-    // if grounded - normal movement else jetpack
     public void JetPackMovement(Vector3 _direction)
     {
-        if(currentJetPackTime < 0)
-        {
-            isJetPackRecoveryActive = true;
-            InvokeRepeating("JetPackRecovery", 0, jetPackRecoveryRepeatTime);
-            return;
-        }
-        if (isJetPackRecoveryActive)
-        {
-            isJetPackRecoveryActive = false;
-            CancelInvoke("JetPackRecovery");
-        }
-
-        currentJetPackTime -= Time.deltaTime;
-        ServerSend.PlayerContinueJetPack(id, currentJetPackTime);
-        rb.AddForce(_direction * jetPackForce * Time.deltaTime, ForceMode.Impulse);
+        if(isGrounded)
+            rb.AddForce(_direction * jetPackForce * 5 * Time.deltaTime, ForceMode.Impulse);
+        //ServerSend.PlayerContinueJetPack(id, currentJetPackTime);
+        else 
+            rb.AddForce(_direction * jetPackForce * Time.deltaTime, ForceMode.Impulse);
         SendPlayerData();
-    }
-
-    /// <summary>
-    /// Use invoke repeating to call this method
-    /// </summary>
-    public void JetPackRecovery()
-    {
-        if (currentJetPackTime > maxJetPackTime)
-        {
-            currentJetPackTime = maxJetPackTime;
-            isJetPackRecoveryActive = false;
-            CancelInvoke("JetPackRecovery");
-        }
-        ServerSend.PlayerContinueJetPack(id, currentJetPackTime);
-        currentJetPackTime += jetPackTimeIncrementor;
     }
     #endregion
 
@@ -331,9 +291,11 @@ public class Player : MonoBehaviour
         do
         {
             _gravityObjectColiiders = Physics.OverlapSphere(transform.position, _checkingDistance, whatIsGravityObject);
-            _checkingDistance += 100;
+            _checkingDistance += 500;
             _errorCatcher++;
-        } while (_gravityObjectColiiders.Length == 0 || _errorCatcher > 10);
+            if (_errorCatcher > 10)
+                return Vector3.zero; // Return to sender (Origin) (This prevents infinite loop )
+        } while (_gravityObjectColiiders.Length == 0);
 
         Transform _nearestGravityObject = _gravityObjectColiiders[0].transform;
         float _lastDistance = 100000;   // garbage value
@@ -467,7 +429,7 @@ public class Player : MonoBehaviour
             {
                 ServerSend.PlayerShotLanded(id, _hit.point);
                 if (_hit.collider.CompareTag("Player"))
-                    _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
+                    _hit.collider.GetComponent<Player>().TakeDamage(id, currentGun.damage);
             }
         }
         // shotgun
@@ -484,7 +446,7 @@ public class Player : MonoBehaviour
                 {
                     ServerSend.PlayerShotLanded(id, _hit.point);
                     if (_hit.collider.CompareTag("Player"))
-                        _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
+                        _hit.collider.GetComponent<Player>().TakeDamage(id, currentGun.damage);
                 }
             }
         }
@@ -527,7 +489,7 @@ public class Player : MonoBehaviour
         {
             ServerSend.PlayerShotLanded(id, _hit.point);
             if (_hit.collider.CompareTag("Player"))
-                _hit.collider.GetComponent<Player>().TakeDamage(currentGun.damage);
+                _hit.collider.GetComponent<Player>().TakeDamage(id, currentGun.damage);
         }
     }
 
@@ -697,7 +659,34 @@ public class Player : MonoBehaviour
         if (health <= 0)
         {
             health = 0;
-            transform.position = new Vector3(0, 25f, 0);
+            currentDeaths++;
+            // Teleport to random spawnpoint
+            transform.position = EnvironmentGenerator.spawnPoints[
+                                 Random.Range(0, EnvironmentGenerator.spawnPoints.Count)];
+            ServerSend.PlayerPosition(this);
+            StartCoroutine(Respawn());
+        }
+
+        ServerSend.PlayerHealth(this);
+    }
+
+    public void TakeDamage(int _fromId, float _damage)
+    {
+        if (health <= 0)
+            return;
+
+        health -= _damage;
+
+        if (health <= 0)
+        {
+            health = 0;
+            currentDeaths++;
+            ServerSend.UpdatePlayerDeathStats(id, currentDeaths);
+            Server.clients[_fromId].player.currentKills++;
+            ServerSend.UpdatePlayerKillStats(_fromId, Server.clients[_fromId].player.currentKills);
+            // Teleport to random spawnpoint
+            transform.position = EnvironmentGenerator.spawnPoints[
+                                 Random.Range(0, EnvironmentGenerator.spawnPoints.Count)];
             ServerSend.PlayerPosition(this);
             StartCoroutine(Respawn());
         }

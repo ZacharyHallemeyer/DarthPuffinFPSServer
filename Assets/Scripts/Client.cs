@@ -223,6 +223,8 @@ public class Client
                 if (_client.id != id)
                 {
                     ServerSend.SpawnPlayer(id, _client.player, _client.player.currentGun.name);
+                    ServerSend.UpdatePlayerKillStats(_client.id, _client.player.currentKills);
+                    ServerSend.UpdatePlayerDeathStats(_client.id, _client.player.currentDeaths);
                 }
             }
         }

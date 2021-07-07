@@ -389,14 +389,22 @@ MonoBehaviour:
   maxPositionY: 250
   minPositionZ: -250
   maxPositionZ: 250
-  minScale: 10
-  maxScale: 100
-  minPlanetCount: 20
-  maxPlanetCount: 30
+  planetMinScale: 10
+  planetMaxScale: 30
+  minPlanetCount: 10
+  maxPlanetCount: 15
   minPlanetDistance: 2
   maxPlanetDistance: 3
+  nonGravityObjectMinScale: 10
+  nonGravityObjectMaxScale: 30
+  minNonGravityObjectCount: 0
+  maxNonGravityObjectCount: 0
+  minNonGravityObjectDistance: 2
+  maxNonGravityObjectDistance: 3
   planetBase: {fileID: 2693521118686034113, guid: cf9fd9b6e25e29f4b9fbea21d51e6bf3,
     type: 3}
+  nonGravityObjects:
+  - {fileID: 2581496526051939247, guid: 46929635e394acb4e8bf4b0db5a00763, type: 3}
 --- !u!4 &2018669589
 Transform:
   m_ObjectHideFlags: 0

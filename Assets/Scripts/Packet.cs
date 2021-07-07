@@ -31,6 +31,8 @@ public enum ServerPackets
     playerSwitchWeapon,
     playerShotLanded,
     playerContinueJetPack,
+    updatePlayerKillStats,
+    updatePlayerDeathStats,
 }
 
 /// <summary>Sent from client to server.</summary>

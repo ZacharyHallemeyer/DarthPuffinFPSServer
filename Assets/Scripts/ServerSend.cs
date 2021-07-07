@@ -96,13 +96,12 @@ public class ServerSend
         {
             _packet.Write(_player.id);
             _packet.Write(_player.username);
-            _packet.Write(_player.transform.position);
+            _packet.Write(EnvironmentGenerator.spawnPoints[Random.Range(0, EnvironmentGenerator.spawnPoints.Count)]);
             _packet.Write(_player.transform.rotation);
             _packet.Write(_gunName);
             _packet.Write(_player.currentGun.currentAmmo);
             _packet.Write(_player.currentGun.reserveAmmo);
             _packet.Write(_player.maxGrappleTime);
-            _packet.Write(_player.maxJetPackTime);
 
             SendTCPData(_toClient, _packet);
         }
@@ -116,6 +115,19 @@ public class ServerSend
         {
             _packet.Write(_player.id);
             _packet.Write(_player.transform.position);
+
+            SendUDPDataToAll(_packet);
+        }
+    }
+
+    /// <summary>Sends a player's updated position to all clients.</summary>
+    /// <param name="_player">The player whose position to update.</param>
+    public static void PlayerPosition(int _id, Vector3 _position)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.playerPosition))
+        {
+            _packet.Write(_id);
+            _packet.Write(_position);
 
             SendUDPDataToAll(_packet);
         }
@@ -377,5 +389,28 @@ public class ServerSend
             SendTCPData(_toClient, _packet);
         }
     }
+
+    public static void UpdatePlayerKillStats(int _toClient, int _currentKills)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.updatePlayerKillStats))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_currentKills);
+
+            SendTCPDataToAll(_packet);
+        }
+    }
+
+    public static void UpdatePlayerDeathStats(int _toClient, int _currentDeaths)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.updatePlayerDeathStats))
+        {
+            _packet.Write(_toClient);
+            _packet.Write(_currentDeaths);
+
+            SendTCPDataToAll(_packet);
+        }
+    }
+
     #endregion
 }
