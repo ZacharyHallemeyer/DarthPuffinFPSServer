@@ -1,11 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-public class NetworkManager : MonoBehaviour
+public class InstantiateTools : MonoBehaviour
 {
-    public static NetworkManager instance;
+    public static InstantiateTools instance;
 
     public GameObject playerPrefab;
 
@@ -20,28 +19,6 @@ public class NetworkManager : MonoBehaviour
             Debug.Log("Instance already exists, destroying object!");
             Destroy(this);
         }
-        DontDestroyOnLoad(this);
-    }
-
-    private void Start()
-    {
-        QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = 30;
-
-        Server.Start(50, 26950);
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.H))
-        {
-            SceneManager.LoadScene("FreeForAll");
-        }
-    }
-
-    private void OnApplicationQuit()
-    {
-        Server.Stop();
     }
 
     public Player InstantiatePlayer()

@@ -193,6 +193,8 @@ MonoBehaviour:
   maxHealth: 100
   rb: {fileID: 7171154087823344460}
   orientation: {fileID: 1345018100387557002}
+  currentKills: 0
+  currentDeaths: 0
   whatIsGround:
     serializedVersion: 2
     m_Bits: 4608
@@ -202,17 +204,17 @@ MonoBehaviour:
   whatIsGravityObject:
     serializedVersion: 2
     m_Bits: 4096
-  gravityMaxDistance: 50
+  gravityMaxDistance: 10
   gravityForce: 100
   maxDistanceFromOrigin: 600
   forceBackToOrigin: 4500
   lastOrientationRotation: {x: 0, y: 0, z: 0, w: 0}
   jetPackForce: 20
-  maxJetPackTime: 10
-  currentJetPackTime: 0
-  jetPackTimeIncrementor: 0.01
-  jetPackRecoveryRepeatTime: 0.01
   isJetPackRecoveryActive: 0
+  maxJetPackPower: 2
+  currentJetPackPower: 0
+  jetPackBurstCost: 1
+  jetPackRecoveryIncrementor: 0.01
   whatIsGrapple:
     serializedVersion: 2
     m_Bits: 7936

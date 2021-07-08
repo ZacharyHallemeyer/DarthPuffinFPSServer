@@ -17,6 +17,14 @@ public class ServerHandle
         Server.clients[_fromClient].SendIntoGame(_username);
     }
 
+    public static void SendLobbyIntoGame()
+    {
+        foreach(Client _client in Server.clients.Values)
+        {
+            //_client.SendIntoGame();
+        }
+    }
+
     public static void PlayerMovement(int _fromClient, Packet _packet)
     {
         Vector2 _moveDirection = _packet.ReadVector2();

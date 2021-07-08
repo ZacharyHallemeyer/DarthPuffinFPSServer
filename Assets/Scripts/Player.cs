@@ -40,6 +40,10 @@ public class Player : MonoBehaviour
     // JetPack 
     public float jetPackForce = 20;
     public bool isJetPackRecoveryActive = true;
+    public float maxJetPackPower = 2.1f;
+    public float currentJetPackPower;
+    public float jetPackBurstCost = .5f;
+    public float jetPackRecoveryIncrementor = .1f;
 
     // Grappling Variables ==================
     // Components
@@ -102,6 +106,7 @@ public class Player : MonoBehaviour
     private void Start()
     {
         maxDistanceFromOrigin = EnvironmentGenerator.BoundaryDistanceFromOrigin;
+        currentJetPackPower = maxJetPackPower;
         timeLeftToGrapple = maxGrappleTime;
         grappleTimeLimiter = maxGrappleTime / 4;
     }
@@ -209,12 +214,26 @@ public class Player : MonoBehaviour
 
         if (isGrounded)
             Movement();
+        else if (moveDirection.x > 0)
+            JetPackThrust(orientation.right);
+        else if (moveDirection.x < 0)
+            JetPackThrust(-orientation.right);
+        else if (moveDirection.y > 0)
+            JetPackThrust(orientation.forward);
+        else if (moveDirection.y < 0)
+            JetPackThrust(-orientation.forward);
         if (IsGrappling)
         {
             if (timeLeftToGrapple > 0)
                 ContinueGrapple();
             else
                 StopGrapple();
+        }
+
+        if (currentJetPackPower < maxJetPackPower)
+        {
+            currentJetPackPower += jetPackRecoveryIncrementor;
+            ServerSend.PlayerContinueJetPack(id, currentJetPackPower);
         }
     }
 
@@ -256,12 +275,26 @@ public class Player : MonoBehaviour
         rb.AddForce(orientation.forward * moveDirection.y * moveSpeed * Time.deltaTime);
         rb.AddForce(orientation.right * moveDirection.x * moveSpeed * Time.deltaTime);
 
+        // Stick to ground object
+        Collider[] _groundCollider = Physics.OverlapSphere(transform.position, groundDistance * 2, whatIsGround);
+        rb.AddForce((_groundCollider[0].transform.position - transform.position) * gravityForce * 3 * Time.deltaTime);
+
+
         SendPlayerData();
     }
 
     #endregion
 
     #region JetPack
+
+    public void JetPackThrust(Vector3 _direction)
+    {
+        if (currentJetPackPower < jetPackBurstCost) return;
+        currentJetPackPower -= jetPackBurstCost;
+
+        rb.AddForce(_direction * jetPackForce * 50 * Time.deltaTime, ForceMode.Impulse);
+        SendPlayerData();
+    }
 
     public void JetPackMovement(Vector3 _direction)
     {
@@ -574,6 +607,7 @@ public class Player : MonoBehaviour
                 CancelInvoke("GrappleRecovery");
             }
 
+
             IsGrappling = true;
 
             // Create joint ("Grapple rope") and anchor to player and grapple point
@@ -605,7 +639,7 @@ public class Player : MonoBehaviour
     
         // Pull player to grapple point
         Vector3 direction = (GrapplePoint - transform.position).normalized;
-        rb.AddForce(direction * 100 * Time.deltaTime, ForceMode.Impulse);
+        rb.AddForce(direction * 50 * Time.deltaTime, ForceMode.Impulse);
 
         // Prevent grapple from phasing through/into objectsz
         // (Game objects such as buildings must have a rotation for this section to work)

@@ -87,6 +87,8 @@ public class ServerSend
         }
     }
 
+    //public static void LoadScene(int _to)
+
     /// <summary>Tells a client to spawn a player.</summary>
     /// <param name="_toClient">The client that should spawn the player.</param>
     /// <param name="_player">The player to spawn.</param>
@@ -102,6 +104,7 @@ public class ServerSend
             _packet.Write(_player.currentGun.currentAmmo);
             _packet.Write(_player.currentGun.reserveAmmo);
             _packet.Write(_player.maxGrappleTime);
+            _packet.Write(_player.maxJetPackPower);
 
             SendTCPData(_toClient, _packet);
         }
@@ -194,12 +197,27 @@ public class ServerSend
         }
     }
 
-    public static void CreateEnvironment(int _toClient, Vector3 _position, Vector3 _localScale)
+    public static void CreateNewPlanet(int _toClient, Vector3 _position, Vector3 _localScale, float _gravityMaxDistance)
     {
-        using (Packet _packet = new Packet((int)ServerPackets.createEnvironment))
+        using (Packet _packet = new Packet((int)ServerPackets.createNewPlanet))
         {
             _packet.Write(_position);
             _packet.Write(_localScale);
+            _packet.Write(_gravityMaxDistance);
+
+            SendTCPData(_toClient, _packet);
+        }
+    }
+
+    public static void CreateNonGravityObject(int _toClient, Vector3 _position, Vector3 _localScale, Quaternion _rotation
+                                              , string _objectName)
+    {
+        using (Packet _packet = new Packet((int)ServerPackets.createNewNonGravityObject))
+        {
+            _packet.Write(_position);
+            _packet.Write(_localScale);
+            _packet.Write(_rotation);
+            _packet.Write(_objectName);
 
             SendTCPData(_toClient, _packet);
         }

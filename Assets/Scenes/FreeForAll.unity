@@ -354,6 +354,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e60c50ba0e1727f4a862938652904c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1453538401
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1453538402}
+  - component: {fileID: 1453538403}
+  m_Layer: 0
+  m_Name: FreeForAllManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1453538402
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453538401}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1453538403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453538401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b7ed4f958590c84fbbc3fd4ca805293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerPrefab: {fileID: 7278839664658962546, guid: a7a72ee487de2d047833e6d950900082,
+    type: 3}
 --- !u!1 &2018669587
 GameObject:
   m_ObjectHideFlags: 0
@@ -383,28 +428,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07e367c6efe7eca44a98a2a5ab2f02a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minPositionX: -250
-  maxPositionX: 250
-  minPositionY: -250
-  maxPositionY: 250
-  minPositionZ: -250
-  maxPositionZ: 250
+  minPositionX: -100
+  maxPositionX: 100
+  minPositionY: -100
+  maxPositionY: 100
+  minPositionZ: -100
+  maxPositionZ: 100
   planetMinScale: 10
-  planetMaxScale: 30
-  minPlanetCount: 10
-  maxPlanetCount: 15
+  planetMaxScale: 20
+  minPlanetCount: 2
+  maxPlanetCount: 3
   minPlanetDistance: 2
   maxPlanetDistance: 3
-  nonGravityObjectMinScale: 10
-  nonGravityObjectMaxScale: 30
-  minNonGravityObjectCount: 0
-  maxNonGravityObjectCount: 0
-  minNonGravityObjectDistance: 2
-  maxNonGravityObjectDistance: 3
+  nonGravityObjectMinScale: 500
+  nonGravityObjectMaxScale: 1000
+  minNonGravityObjectCount: 7
+  maxNonGravityObjectCount: 15
+  minNonGravityObjectDistance: 0.01
+  maxNonGravityObjectDistance: 0.1
   planetBase: {fileID: 2693521118686034113, guid: cf9fd9b6e25e29f4b9fbea21d51e6bf3,
     type: 3}
   nonGravityObjects:
-  - {fileID: 2581496526051939247, guid: 46929635e394acb4e8bf4b0db5a00763, type: 3}
+  - {fileID: 8916450736533267645, guid: cd2d9ef7ca9eeb046a797e25ab7f92a7, type: 3}
+  - {fileID: 8916450736533267645, guid: cd2d9ef7ca9eeb046a797e25ab7f92a7, type: 3}
+  - {fileID: 3160175995322173241, guid: 1df546dfd1cedda4582e1199feffaedf, type: 3}
 --- !u!4 &2018669589
 Transform:
   m_ObjectHideFlags: 0

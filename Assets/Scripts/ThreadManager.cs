@@ -5,9 +5,25 @@ using UnityEngine;
 
 public class ThreadManager : MonoBehaviour
 {
+    public static ThreadManager instance;
+
     private static readonly List<Action> executeOnMainThread = new List<Action>();
     private static readonly List<Action> executeCopiedOnMainThread = new List<Action>();
     private static bool actionToExecuteOnMainThread = false;
+
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else if (instance != this)
+        {
+            Debug.Log("Instance already exists, destroying object!");
+            Destroy(gameObject);
+        }
+        DontDestroyOnLoad(this);
+    }
 
     private void FixedUpdate()
     {

@@ -10,6 +10,7 @@ public class Client
     public static int dataBufferSize = 4096;
 
     public int id;
+    public string playerName;
     public Player player;
     public TCP tcp;
     public UDP udp;
@@ -208,11 +209,17 @@ public class Client
         }
     }
 
+    public void SendIntoLobby(string _playerName)
+    {
+        playerName = _playerName;
+    }
+
     /// <summary>Sends the client into the game and informs other clients of the new player.</summary>
     /// <param name="_playerName">The username of the new player.</param>
     public void SendIntoGame(string _playerName)
     {
-        player = NetworkManager.instance.InstantiatePlayer();
+        //player = NetworkManager.instance.InstantiatePlayer();
+        player = InstantiateTools.instance.InstantiatePlayer();
         player.Initialize(id, _playerName);
 
         // Send all players to the new player
@@ -239,9 +246,59 @@ public class Client
         }
 
         // Send environment to new player
-        foreach(GameObject _planet in EnvironmentGenerator.planets.Values)
+        foreach (GameObject _planet in EnvironmentGenerator.planets.Values)
         {
-            ServerSend.CreateEnvironment(id, _planet.transform.position, _planet.transform.localScale); 
+            ServerSend.CreateNewPlanet(id, _planet.transform.position, _planet.transform.localScale, Server.clients[id].player.gravityMaxDistance);
+        }
+        foreach(GameObject _object in EnvironmentGenerator.nonGravityObjectDict.Values)
+        {
+            ServerSend.CreateNonGravityObject(id, _object.transform.position, _object.transform.localScale,
+                                              _object.transform.rotation , _object.name);
+        }
+
+        ServerSend.CreateBoundary(id, Vector3.zero, EnvironmentGenerator.BoundaryDistanceFromOrigin);
+    }
+
+    /// <summary>Sends the client into the game and informs other clients of the new player.</summary>
+    /// <param name="_playerName">The username of the new player.</param>
+    public void SendIntoGame()
+    {
+        player = InstantiateTools.instance.InstantiatePlayer();
+        //player = NetworkManager.instance.InstantiatePlayer();
+        player.Initialize(id, playerName);
+
+        // Send all players to the new player
+        foreach (Client _client in Server.clients.Values)
+        {
+            if (_client.player != null)
+            {
+                if (_client.id != id)
+                {
+                    ServerSend.SpawnPlayer(id, _client.player, _client.player.currentGun.name);
+                    ServerSend.UpdatePlayerKillStats(_client.id, _client.player.currentKills);
+                    ServerSend.UpdatePlayerDeathStats(_client.id, _client.player.currentDeaths);
+                }
+            }
+        }
+
+        // Send the new player to all players (including himself)
+        foreach (Client _client in Server.clients.Values)
+        {
+            if (_client.player != null)
+            {
+                ServerSend.SpawnPlayer(_client.id, player, player.currentGun.name);
+            }
+        }
+
+        // Send environment to new player
+        foreach (GameObject _planet in EnvironmentGenerator.planets.Values)
+        {
+            ServerSend.CreateNewPlanet(id, _planet.transform.position, _planet.transform.localScale, Server.clients[id].player.gravityMaxDistance);
+        }
+        foreach(GameObject _object in EnvironmentGenerator.nonGravityObjectDict.Values)
+        {
+            ServerSend.CreateNonGravityObject(id, _object.transform.position, _object.transform.localScale,
+                                              _object.transform.rotation , _object.name);
         }
 
         ServerSend.CreateBoundary(id, Vector3.zero, EnvironmentGenerator.BoundaryDistanceFromOrigin);

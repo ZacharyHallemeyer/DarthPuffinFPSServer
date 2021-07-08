@@ -128,6 +128,7 @@ public class Server
         packetHandlers = new Dictionary<int, PacketHandler>()
         {
             { (int)ClientPackets.welcomeReceived, ServerHandle.WelcomeReceived },
+            { (int)ClientPackets.playerChangeGameMode, ServerHandle.WelcomeReceived },
             { (int)ClientPackets.playerMovement, ServerHandle.PlayerMovement },
             { (int)ClientPackets.playerJetPackMovement, ServerHandle.PlayerJetPackMovement },
             { (int)ClientPackets.playerActions, ServerHandle.PlayerActions },

@@ -5,7 +5,7 @@ using UnityEngine;
 public class EnvironmentGenerator : MonoBehaviour
 {
     public static Dictionary<int, GameObject> planets = new Dictionary<int, GameObject>();
-    public static Dictionary<int, GameObject> nonGravityObject = new Dictionary<int, GameObject>();
+    public static Dictionary<int, GameObject> nonGravityObjectDict = new Dictionary<int, GameObject>();
     public static Dictionary<int, Vector3> spawnPoints = new Dictionary<int, Vector3>();
     public static int BoundaryDistanceFromOrigin;
 
@@ -95,8 +95,9 @@ public class EnvironmentGenerator : MonoBehaviour
             GameObject _object = Instantiate(nonGravityObjects[Random.Range(0, nonGravityObjects.Length)]
                                              ,_objectPosition, Quaternion.identity);
             _object.transform.localScale = _objectScale;
+            _object.transform.rotation = GenerateRandomQuaternion();
 
-            nonGravityObject.Add(_index, _object);
+            nonGravityObjectDict.Add(_index, _object);
             _index++;
 
             yield return new WaitForEndOfFrame();
@@ -118,5 +119,10 @@ public class EnvironmentGenerator : MonoBehaviour
     private Vector3 GenerateRandomVector()
     {
         return new Vector3(Random.Range(minPositionX, maxPositionX), Random.Range(minPositionY, maxPositionY), Random.Range(minPositionZ, maxPositionZ));
+    }
+
+    private Quaternion GenerateRandomQuaternion()
+    {
+        return Quaternion.Euler(Random.Range(0, 360f), Random.Range(0, 360f), Random.Range(0, 360f));
     }
 }
